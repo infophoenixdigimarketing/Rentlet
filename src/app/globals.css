@@ -1,0 +1,170 @@
+@import "tailwindcss";
+
+:root {
+  /* Brand */
+  --color-orange: #ff5a00;
+  --color-orange-dark: #e04e00;
+  --color-orange-light: #fff1e8;
+  --color-navy: #063b78;
+  --color-navy-dark: #022b5b;
+  --color-navy-light: #eaf1fb;
+
+  --background: #ffffff;
+  --foreground: #172033;
+  --muted: #f7f9fc;
+  --muted-foreground: #6b7280;
+  --border: #e6e9f0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+
+  --color-brand-orange: var(--color-orange);
+  --color-brand-orange-dark: var(--color-orange-dark);
+  --color-brand-orange-light: var(--color-orange-light);
+  --color-brand-navy: var(--color-navy);
+  --color-brand-navy-dark: var(--color-navy-dark);
+  --color-brand-navy-light: var(--color-navy-light);
+
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+
+  --animate-fade-up: fade-up 0.6s ease both;
+  --animate-shimmer: shimmer 1.6s infinite;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  /* Belt-and-braces: no full-bleed rail or animated transform should ever push a
+     horizontal scrollbar onto the whole page. */
+  overflow-x: hidden;
+}
+
+/* Utility: hide scrollbar for horizontal card rails */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Reusable container */
+.container-rentlet {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 1024px) {
+  .container-rentlet {
+    padding-inline: 2rem;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ *  Google Translate website widget (see components/layout/GoogleTranslate.tsx)
+ *  We drive translation from our own LanguageMenu, so hide every piece of
+ *  Google's injected UI and stop it shifting the page down.
+ * ------------------------------------------------------------------ */
+/* The grey "Translated into … / Show original / Options" bar Google injects at the top —
+   it's an <iframe class="skiptranslate">. Kill it (and every other bit of Google's chrome)
+   so our own LanguageMenu is the only visible control. */
+.goog-te-banner-frame,
+iframe.skiptranslate,
+.skiptranslate iframe,
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-ZVi9od-aZ2wEe-OiiCO,
+.goog-te-gadget-icon,
+.goog-tooltip,
+.goog-tooltip:hover,
+#goog-gt-tt,
+.goog-te-balloon-frame {
+  display: none !important;
+  visibility: hidden !important;
+}
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+}
+/* Google shifts <body> down to make room for its banner — cancel that. */
+body {
+  top: 0 !important;
+  position: static !important;
+}
+/* Keep the widget mounted & functional, just out of sight (NOT display:none — that
+   stops Google from initialising). */
+#google_translate_element {
+  position: fixed !important;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+/* Google wraps translated text in <font> tags — keep them inheriting our styles. */
+font {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* ------------------------------------------------------------------ *
+ *  Compact the desktop header when a translation is active.
+ *  Malayalam / Tamil / Telugu / Kannada expand the nav text far more than
+ *  Hindi, which pushed Language + Menu off the right edge. `site-translated`
+ *  is set on <html> by GoogleTranslate.tsx whenever the language is not
+ *  English; here we shrink the nav, hide the chevrons and drop the
+ *  "Rent Agreement" bar link (still in the Lease dropdown + Menu panel) so
+ *  the full desktop header still fits — same as English/Hindi.
+ * ------------------------------------------------------------------ */
+html.site-translated .header-row {
+  gap: 0.5rem;
+}
+html.site-translated .header-primary-nav {
+  column-gap: 0;
+}
+html.site-translated .header-primary-nav .group > a {
+  padding: 0.375rem 0.25rem;
+  font-size: 0.75rem;
+  gap: 0.25rem;
+}
+/* hover dropdowns still work — we only hide the little caret to save width */
+html.site-translated .header-primary-nav .group > a > svg:last-child {
+  display: none;
+}
+html.site-translated .header-secondary-cta {
+  display: none !important;
+}
+html.site-translated .header-actions {
+  gap: 0.25rem;
+}
+html.site-translated .header-cta {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  font-size: 0.75rem;
+}
