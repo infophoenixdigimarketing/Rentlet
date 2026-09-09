@@ -435,6 +435,12 @@ function PostPropertyLanding() {
           </button>
 
           <p className="mt-3 text-xs text-muted-foreground">
+            Not getting the OTP?{" "}
+            <Link href="/register?next=/post-property" className="font-semibold text-brand-navy hover:underline">
+              Sign up with email or Google
+            </Link>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
             Existing user?{" "}
             <Link href="/login?next=/post-property" className="font-semibold text-brand-navy hover:underline">
               Login here
