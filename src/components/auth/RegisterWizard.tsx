@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Search, Building2, Home, Briefcase, HardHat, ChevronLeft } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { MethodTabs } from "@/components/auth/MethodTabs";
@@ -13,11 +14,6 @@ import type { UserRole } from "@/types/user";
 
 type Step = "intent" | "role" | "contact";
 
-// Demo accounts wired to each intent so a tester sees seeker features under one email and
-// owner features under the other. Set the moment the intent button is clicked; still editable.
-const SEEKER_EMAIL = "demo.tenant@rentlet.in"; // favourites, saved searches, visits
-const OWNER_EMAIL = "demo.owner@rentlet.in"; //  owner dashboard, leads, analytics
-
 const LISTING_ROLES: { id: UserRole; label: string; description: string; icon: typeof Home }[] = [
   { id: "owner", label: "Owner", description: "I own the property I want to list", icon: Home },
   { id: "agent", label: "Agent", description: "I list properties on behalf of owners", icon: Briefcase },
@@ -25,21 +21,25 @@ const LISTING_ROLES: { id: UserRole; label: string; description: string; icon: t
 ];
 
 export function RegisterWizard({ redirectTo = "/" }: { redirectTo?: string }) {
+  const router = useRouter();
   const [step, setStep] = useState<Step>("intent");
   const [role, setRole] = useState<UserRole | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [agreed, setAgreed] = useState(false);
 
+  function goHome() {
+    if (typeof window !== "undefined" && window.history.length > 1) router.back();
+    else router.push("/");
+  }
+
   function chooseLooking() {
     setRole("tenant");
-    setEmail(SEEKER_EMAIL);
     setAgreed(false);
     setStep("contact");
   }
 
   function chooseListing() {
-    setEmail(OWNER_EMAIL);
     setAgreed(false);
     setStep("role");
   }
@@ -47,6 +47,7 @@ export function RegisterWizard({ redirectTo = "/" }: { redirectTo?: string }) {
   if (step === "intent") {
     return (
       <div className="flex flex-col gap-3">
+        <BackButton onClick={goHome} />
         <button
           type="button"
           onClick={chooseLooking}

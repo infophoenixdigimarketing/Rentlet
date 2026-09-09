@@ -7,11 +7,14 @@ export function AuthShell({
   subtitle,
   children,
   footer,
+  showBack = true,
 }: {
   title: string;
   subtitle: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  /** Hide the card's own Back button when the content manages its own navigation (register wizard). */
+  showBack?: boolean;
 }) {
   return (
     <div className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden bg-muted py-10">
@@ -30,8 +33,8 @@ export function AuthShell({
           </Link>
         </div>
         <div className="rounded-2xl border border-border bg-white p-5 shadow-xl shadow-black/10 sm:p-8">
-          <BackButton />
-          <h1 className="mt-3 text-lg font-extrabold text-foreground sm:text-xl">{title}</h1>
+          {showBack && <BackButton />}
+          <h1 className={`${showBack ? "mt-3" : ""} text-lg font-extrabold text-foreground sm:text-xl`}>{title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
           <div className="mt-5 sm:mt-6">{children}</div>
         </div>

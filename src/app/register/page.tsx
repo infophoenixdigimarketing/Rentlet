@@ -18,6 +18,7 @@ export default async function RegisterPage(props: PageProps<"/register">) {
     <AuthShell
       title="Join Rentlet"
       subtitle="Your space, your choice — create an account to get started."
+      showBack={false}
       footer={
         <>
           Already have an account?{" "}
