@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Heart, Bookmark, CalendarClock, LayoutDashboard, LogOut } from "lucide-react";
+import { ChevronDown, ChevronRight, Heart, Bookmark, CalendarClock, LayoutDashboard, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { authService } from "@/lib/services/auth.service";
 import { toast } from "@/lib/toast";
@@ -58,10 +58,17 @@ export function UserMenu() {
 
       {open && (
         <div className="absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-xl border border-border bg-white py-1.5 shadow-xl">
-          <div className="border-b border-border px-3.5 py-2.5">
-            <p className="text-sm font-semibold text-foreground">{user.name}</p>
-            <p className="text-xs capitalize text-muted-foreground">{user.role}</p>
-          </div>
+          <Link
+            href="/profile"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 border-b border-border px-3.5 py-2.5 hover:bg-muted"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-foreground">{user.name}</span>
+              <span className="block text-xs capitalize text-muted-foreground">{user.role} · View profile</span>
+            </span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </Link>
           {links.map((l) => (
             <Link
               key={l.href}
