@@ -6,8 +6,13 @@ import { ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { authService } from "@/lib/services/auth.service";
+import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { toast } from "@/lib/toast";
 import type { UserRole } from "@/types/user";
+
+// No Firebase keys => the mock auth provider is in use: it never sends a real SMS and accepts
+// the fixed code 123456. Say so plainly instead of leaving "123456" as a mystery placeholder.
+const DEMO_MODE = !isFirebaseConfigured();
 
 export function PhoneOtpForm({
   redirectTo = "/",
@@ -38,7 +43,7 @@ export function PhoneOtpForm({
     try {
       await authService.sendOtp(e164);
       setStage("otp");
-      toast(`OTP sent to +91 ${phone}.`, "info");
+      toast(DEMO_MODE ? "Demo mode — enter code 123456 (no SMS sent)." : `OTP sent to +91 ${phone}.`, "info");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't send OTP. Try again.");
     } finally {
@@ -83,7 +88,8 @@ export function PhoneOtpForm({
   return (
     <div className="flex flex-col gap-3">
       <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Code sent to {phone}.{" "}
+        <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />{" "}
+        {DEMO_MODE ? `Demo — no SMS sent to ${phone}.` : `Code sent to +91 ${phone}.`}{" "}
         <button type="button" onClick={() => setStage("phone")} className="font-semibold text-brand-navy hover:underline">
           Change
         </button>
@@ -92,11 +98,17 @@ export function PhoneOtpForm({
         label="Enter OTP"
         inputMode="numeric"
         maxLength={6}
-        placeholder="123456"
+        placeholder={DEMO_MODE ? "123456" : "6-digit code"}
         value={code}
-        onChange={(e) => setCode(e.target.value)}
+        onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
         error={error ?? undefined}
       />
+      {DEMO_MODE && (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          This site isn&apos;t connected to an SMS service yet, so real OTPs aren&apos;t sent.
+          Enter <strong>123456</strong> to continue, or use Email / Google.
+        </p>
+      )}
       <Button onClick={verify} disabled={loading || code.length < 6} size="lg">
         {loading ? "Verifying..." : "Verify & Continue"}
       </Button>
