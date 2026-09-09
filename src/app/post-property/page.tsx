@@ -1281,7 +1281,24 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
 
     setSubmitting(true);
     try {
-      const property = await submitProperty(buildWizardState(), user);
+      const wizardState = buildWizardState();
+      const property = await submitProperty(wizardState, user);
+      // Fire-and-forget confirmation emails (owner + admin). No-ops when SMTP isn't
+      // configured on the server; never allowed to fail the submission.
+      void fetch("/api/notify-listing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          listingTitle: property.title,
+          city: property.city,
+          listingType: property.listingType,
+          ownerName: wizardState.ownerName || user.name,
+          ownerEmail: wizardState.ownerEmail || user.email || "",
+          ownerPhone: wizardState.ownerPhone || user.phone || "",
+          propertyId: property.id,
+          slug: property.slug,
+        }),
+      }).catch(() => {});
       // buildProperty() hard-codes availableFrom "Immediate"; honour the picked date if any.
       if (rentLike && form.availableFrom) property.availableFrom = form.availableFrom;
       // Mock submit doesn't upload media — splice in the local object URLs so the owner
