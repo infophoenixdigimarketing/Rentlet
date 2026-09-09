@@ -45,6 +45,23 @@ export function Hero() {
           </Link>
         </div>
 
+        {/* Rent / Sell / Lease quick links — mobile only, the header's top nav is hidden there */}
+        <div className="mb-4 flex animate-fade-up gap-2 lg:hidden">
+          {[
+            { label: "Rent", href: "/properties?listingType=rent" },
+            { label: "Sell", href: "/post-property" },
+            { label: "Lease", href: "/properties?listingType=rent&type=office,shop,showroom,warehouse" },
+          ].map((c) => (
+            <Link
+              key={c.label}
+              href={c.href}
+              className="flex-1 rounded-lg border border-white/25 bg-white/5 py-2 text-center text-xs font-bold text-white transition-colors hover:bg-white/15"
+            >
+              {c.label}
+            </Link>
+          ))}
+        </div>
+
         {/* Top row: trust badge on the left, headline + subtext on the top right */}
         <div className="flex animate-fade-up flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           <span className="inline-flex w-fit items-center gap-2 rounded-full bg-gradient-to-r from-brand-orange to-brand-orange-dark px-3.5 py-1.5 text-xs font-bold text-white shadow-lg shadow-brand-orange/30 ring-1 ring-white/20">
