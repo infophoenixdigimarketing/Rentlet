@@ -20,7 +20,7 @@ export function BackButton() {
     <button
       type="button"
       onClick={goBack}
-      className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-sm font-semibold text-brand-navy shadow-sm shadow-black/10 backdrop-blur transition-colors hover:bg-white"
+      className="-ml-1 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-brand-navy"
     >
       <ArrowLeft className="h-4 w-4" />
       Back
