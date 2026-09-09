@@ -11,6 +11,7 @@ import {
   GoogleAuthProvider,
   signOut,
   sendPasswordResetEmail,
+  sendEmailVerification,
   updateProfile as updateFirebaseDisplayName,
   updateEmail as updateFirebaseEmail,
   RecaptchaVerifier,
@@ -381,6 +382,62 @@ function firebaseUserToAuthUser(firebaseUser: FirebaseUser, defaults: { name?: s
   };
 }
 
+// Firebase Auth throws errors like `FirebaseError: Firebase: Error (auth/invalid-credential).`
+// which are useless in a form. Map the codes we can hit to a plain sentence the user can act on;
+// pass our own thrown Errors (no `code`) straight through; fall back to a generic line for
+// anything unmapped rather than leaking the raw "Firebase: Error (auth/...)" string.
+function friendlyAuthError(err: unknown): string {
+  const code =
+    typeof err === "object" && err !== null && "code" in err
+      ? String((err as { code: unknown }).code)
+      : "";
+  if (!code) return err instanceof Error && err.message ? err.message : "Something went wrong. Please try again.";
+  switch (code) {
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+    case "auth/user-not-found":
+      return "Incorrect email or password. Check both and try again.";
+    case "auth/invalid-email":
+      return "That doesn't look like a valid email address.";
+    case "auth/user-disabled":
+      return "This account has been disabled. Contact support.";
+    case "auth/email-already-in-use":
+      return "An account with this email already exists. Try signing in instead.";
+    case "auth/weak-password":
+      return "Password must be at least 6 characters.";
+    case "auth/too-many-requests":
+      return "Too many attempts. Wait a few minutes, then try again.";
+    case "auth/network-request-failed":
+      return "Network error. Check your connection and try again.";
+    case "auth/invalid-verification-code":
+      return "That OTP is incorrect. Check the 6-digit code and try again.";
+    case "auth/code-expired":
+      return "That OTP has expired. Request a new one.";
+    case "auth/missing-verification-code":
+      return "Enter the 6-digit OTP sent to your phone.";
+    case "auth/invalid-phone-number":
+    case "auth/missing-phone-number":
+      return "Enter a valid mobile number.";
+    case "auth/configuration-not-found":
+      return "Phone sign-in isn't enabled for this project yet. Enable Authentication → Sign-in method → Phone in Firebase, or use email / Google.";
+    case "auth/quota-exceeded":
+      return "SMS limit reached for now. Try again later, or use email / Google.";
+    case "auth/captcha-check-failed":
+      return "Verification check failed. Reload the page and try again.";
+    case "auth/popup-closed-by-user":
+    case "auth/cancelled-popup-request":
+      return "Sign-in was cancelled.";
+    case "auth/popup-blocked":
+      return "Your browser blocked the sign-in popup. Allow popups for this site and retry.";
+    case "auth/account-exists-with-different-credential":
+      return "This email is already registered with a different sign-in method.";
+    case "auth/requires-recent-login":
+      return "For security, sign out and sign in again before changing this.";
+    default:
+      return "Couldn't complete that right now. Please try again in a moment.";
+  }
+}
+
 class FirebaseAuthProvider implements AuthProvider {
   private listeners: ((user: AuthUser | null) => void)[] = [];
   private current: AuthUser | null = null;
@@ -420,43 +477,70 @@ class FirebaseAuthProvider implements AuthProvider {
   }
 
   async sendOtp(phone: string): Promise<void> {
-    this.confirmationResult = await signInWithPhoneNumber(getFirebaseAuth(), phone, this.getRecaptcha());
+    try {
+      this.confirmationResult = await signInWithPhoneNumber(getFirebaseAuth(), phone, this.getRecaptcha());
+    } catch (e) {
+      throw new Error(friendlyAuthError(e));
+    }
   }
 
   async verifyOtp(_phone: string, code: string, newUser?: { name: string; role: UserRole; email?: string }): Promise<AuthUser> {
     if (!this.confirmationResult) throw new Error("Request an OTP before verifying it.");
-    const credential = await this.confirmationResult.confirm(code);
-    const user = firebaseUserToAuthUser(credential.user, newUser);
-    this.current = user;
-    return user;
+    try {
+      const credential = await this.confirmationResult.confirm(code);
+      const user = firebaseUserToAuthUser(credential.user, newUser);
+      this.current = user;
+      return user;
+    } catch (e) {
+      throw new Error(friendlyAuthError(e));
+    }
   }
 
   async loginWithEmail(email: string, password: string): Promise<AuthUser> {
-    const credential = await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
-    const user = firebaseUserToAuthUser(credential.user);
-    this.current = user;
-    return user;
+    try {
+      const credential = await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+      const user = firebaseUserToAuthUser(credential.user);
+      this.current = user;
+      return user;
+    } catch (e) {
+      throw new Error(friendlyAuthError(e));
+    }
   }
 
   async registerWithEmail(input: { name: string; email: string; password: string; role: UserRole }): Promise<AuthUser> {
-    const credential = await createUserWithEmailAndPassword(getFirebaseAuth(), input.email, input.password);
-    await updateFirebaseDisplayName(credential.user, { displayName: input.name });
-    const user = firebaseUserToAuthUser(credential.user, { name: input.name, role: input.role });
-    this.current = user;
-    return user;
+    try {
+      const credential = await createUserWithEmailAndPassword(getFirebaseAuth(), input.email, input.password);
+      await updateFirebaseDisplayName(credential.user, { displayName: input.name });
+      // Send the "confirm your email" link. Best-effort: a failure here (rate limit, etc.)
+      // must not block an otherwise-successful signup.
+      await sendEmailVerification(credential.user).catch(() => {});
+      const user = firebaseUserToAuthUser(credential.user, { name: input.name, role: input.role });
+      this.current = user;
+      return user;
+    } catch (e) {
+      throw new Error(friendlyAuthError(e));
+    }
   }
 
   async loginWithGoogle(_account?: GoogleDemoAccount, newUserRole?: UserRole): Promise<AuthUser> {
     // Real Google OAuth returns the actual chosen account — the demo `account` list is ignored here.
     void _account;
-    const credential = await signInWithPopup(getFirebaseAuth(), new GoogleAuthProvider());
-    const user = firebaseUserToAuthUser(credential.user, newUserRole ? { role: newUserRole } : undefined);
-    this.current = user;
-    return user;
+    try {
+      const credential = await signInWithPopup(getFirebaseAuth(), new GoogleAuthProvider());
+      const user = firebaseUserToAuthUser(credential.user, newUserRole ? { role: newUserRole } : undefined);
+      this.current = user;
+      return user;
+    } catch (e) {
+      throw new Error(friendlyAuthError(e));
+    }
   }
 
   async requestPasswordReset(email: string): Promise<void> {
-    await sendPasswordResetEmail(getFirebaseAuth(), email);
+    try {
+      await sendPasswordResetEmail(getFirebaseAuth(), email);
+    } catch (e) {
+      throw new Error(friendlyAuthError(e));
+    }
   }
 
   async logout(): Promise<void> {

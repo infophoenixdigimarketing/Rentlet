@@ -1,10 +1,11 @@
 "use client";
-
+  
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { authService } from "@/lib/services/auth.service";
+import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { toast } from "@/lib/toast";
 import type { UserRole } from "@/types/user";
 
@@ -49,7 +50,12 @@ export function EmailRegisterForm({
         password,
         role,
       });
-      toast(`Welcome to Rentlet, ${user.name.split(" ")[0]}!`);
+      const first = user.name.split(" ")[0] || "there";
+      toast(
+        isFirebaseConfigured()
+          ? `Welcome to Rentlet, ${first}! We've emailed a verification link to ${effectiveEmail} — confirm it to secure your account.`
+          : `Welcome to Rentlet, ${first}!`
+      );
       router.push(redirectTo);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong.";

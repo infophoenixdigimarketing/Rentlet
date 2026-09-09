@@ -24,6 +24,10 @@ export function PhoneOtpForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Firebase phone auth needs an E.164 number (+<country><number>); the field only collects
+  // the 10-digit Indian subscriber number, so prefix +91 before handing it to the service.
+  const e164 = `+91${phone}`;
+
   async function sendOtp() {
     if (phone.length !== 10) {
       setError("Mobile number must be exactly 10 digits.");
@@ -32,16 +36,11 @@ export function PhoneOtpForm({
     setError(null);
     setLoading(true);
     try {
-      await authService.sendOtp(phone);
+      await authService.sendOtp(e164);
       setStage("otp");
-      toast(`OTP sent to ${phone}. Use 123456 for this demo.`, "info");
+      toast(`OTP sent to +91 ${phone}.`, "info");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Couldn't send OTP. Try again.";
-      setError(
-        msg.includes("configuration-not-found")
-          ? "Phone sign-in isn't enabled for this Firebase project yet. Enable Authentication → Sign-in method → Phone, or use email/Google."
-          : msg
-      );
+      setError(e instanceof Error ? e.message : "Couldn't send OTP. Try again.");
     } finally {
       setLoading(false);
     }
@@ -51,7 +50,7 @@ export function PhoneOtpForm({
     setError(null);
     setLoading(true);
     try {
-      const user = await authService.verifyOtp(phone, code, newUser);
+      const user = await authService.verifyOtp(e164, code, newUser);
       toast(`Welcome${newUser ? "" : " back"}, ${user.name.split(" ")[0]}!`);
       router.push(redirectTo);
     } catch (e) {
