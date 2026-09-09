@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck, Home as HomeIcon, Building2, Hotel, Trees, BedDouble } from "lucide-react";
+import { ShieldCheck, Home as HomeIcon, Building2, Hotel, Trees, BedDouble, PlusCircle } from "lucide-react";
 
 // The property-type visuals the hero communicates — real photos, each a real link to its
 // filtered search. Every category the site supports is represented here so the whole
@@ -26,6 +26,16 @@ export function Hero() {
       />
 
       <div className="container-rentlet relative pb-8 pt-4 sm:pb-10 sm:pt-5 lg:pb-10 lg:pt-6">
+        {/* Post Property CTA — first thing in the hero. The header's button is hidden behind
+            the mobile menu, so this keeps listing one tap away on every screen size. */}
+        <Link
+          href="/post-property"
+          className="mb-4 inline-flex w-full animate-fade-up items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-brand-navy shadow-lg shadow-black/25 transition-transform hover:-translate-y-0.5 sm:w-auto"
+        >
+          <PlusCircle className="h-4 w-4 text-brand-orange" />
+          Post Your Property — Free
+        </Link>
+
         {/* Top row: trust badge on the left, headline + subtext on the top right */}
         <div className="flex animate-fade-up flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           <span className="inline-flex w-fit items-center gap-2 rounded-full bg-gradient-to-r from-brand-orange to-brand-orange-dark px-3.5 py-1.5 text-xs font-bold text-white shadow-lg shadow-brand-orange/30 ring-1 ring-white/20">
