@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck, Home as HomeIcon, Building2, Hotel, Trees, BedDouble, PlusCircle } from "lucide-react";
+import { ShieldCheck, Home as HomeIcon, Building2, Hotel, Trees, BedDouble, PlusCircle, FileText } from "lucide-react";
 
 // The property-type visuals the hero communicates — real photos, each a real link to its
 // filtered search. Every category the site supports is represented here so the whole
@@ -26,15 +26,24 @@ export function Hero() {
       />
 
       <div className="container-rentlet relative pb-8 pt-4 sm:pb-10 sm:pt-5 lg:pb-10 lg:pt-6">
-        {/* Post Property CTA — first thing in the hero. The header's button is hidden behind
-            the mobile menu, so this keeps listing one tap away on every screen size. */}
-        <Link
-          href="/post-property"
-          className="mb-4 inline-flex w-full animate-fade-up items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-brand-navy shadow-lg shadow-black/25 transition-transform hover:-translate-y-0.5 sm:w-auto"
-        >
-          <PlusCircle className="h-4 w-4 text-brand-orange" />
-          Post Your Property — Free
-        </Link>
+        {/* Primary CTAs — first thing in the hero, on one row. Both live in the header too but
+            are hidden behind the mobile menu, so these keep them one tap away on any screen. */}
+        <div className="mb-4 flex animate-fade-up flex-wrap gap-2">
+          <Link
+            href="/post-property"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-brand-navy shadow-lg shadow-black/25 transition-transform hover:-translate-y-0.5 sm:flex-none"
+          >
+            <PlusCircle className="h-4 w-4 text-brand-orange" />
+            Post Your Property — Free
+          </Link>
+          <Link
+            href="/rental-agreement"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/40 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-white/10 sm:flex-none"
+          >
+            <FileText className="h-4 w-4" />
+            Rent Agreement
+          </Link>
+        </div>
 
         {/* Top row: trust badge on the left, headline + subtext on the top right */}
         <div className="flex animate-fade-up flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
