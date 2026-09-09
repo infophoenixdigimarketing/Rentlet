@@ -542,6 +542,7 @@ type FormState = {
   agreeTerms: boolean;
   // Agent-only — whose property this is
   agentOwnerName: string;
+  agentOwnerDial: string;
   agentOwnerPhone: string;
   agentLicense: string;
   // Builder-only — project-level details
@@ -1025,6 +1026,7 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
     wantAgreement: false,
     agreeTerms: false,
     agentOwnerName: "",
+    agentOwnerDial: "+91",
     agentOwnerPhone: "",
     agentLicense: "",
     projectRera: "",
@@ -1241,7 +1243,7 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
       ownerName: role === "agent" && form.agentOwnerName.trim() ? form.agentOwnerName.trim() : form.name.trim(),
       ownerPhone:
         role === "agent" && form.agentOwnerPhone.trim()
-          ? form.agentOwnerPhone.trim()
+          ? `${form.agentOwnerDial} ${form.agentOwnerPhone.trim()}`
           : intent.phone
             ? intent.phone.trim().startsWith("+")
               ? intent.phone.trim()
@@ -1529,14 +1531,29 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
                         </label>
                         <label className="block">
                           <span className="text-xs font-semibold text-foreground">Owner&apos;s Contact Number</span>
-                          <input
-                            type="tel"
-                            inputMode="numeric"
-                            value={form.agentOwnerPhone}
-                            onChange={(e) => set("agentOwnerPhone", e.target.value.replace(/[^\d+ ]/g, ""))}
-                            placeholder="+91 98765 43210"
-                            className={cn(UNDERLINE_FIELD, "mt-1")}
-                          />
+                          <span className="mt-1 flex items-center gap-2 border-b border-border focus-within:border-brand-navy">
+                            <select
+                              aria-label="Country code"
+                              value={form.agentOwnerDial}
+                              onChange={(e) => set("agentOwnerDial", e.target.value)}
+                              className="shrink-0 bg-transparent py-2 text-sm font-semibold text-muted-foreground outline-none"
+                            >
+                              {COUNTRY_CODES.map((c) => (
+                                <option key={c.code} value={c.code}>
+                                  {c.label}
+                                </option>
+                              ))}
+                            </select>
+                            <input
+                              type="tel"
+                              inputMode="numeric"
+                              maxLength={14}
+                              value={form.agentOwnerPhone}
+                              onChange={(e) => set("agentOwnerPhone", e.target.value.replace(/\D/g, "").slice(0, 14))}
+                              placeholder="98765 43210"
+                              className="w-full border-0 bg-transparent py-2 text-base text-foreground outline-none placeholder:text-muted-foreground/70"
+                            />
+                          </span>
                         </label>
                         <label className="block">
                           <span className="text-xs font-semibold text-foreground">Your Agent / RERA ID (optional)</span>
