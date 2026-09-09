@@ -419,11 +419,16 @@ function friendlyAuthError(err: unknown): string {
     case "auth/missing-phone-number":
       return "Enter a valid mobile number.";
     case "auth/configuration-not-found":
-      return "Phone sign-in isn't enabled for this project yet. Enable Authentication → Sign-in method → Phone in Firebase, or use email / Google.";
+    case "auth/operation-not-allowed":
+      return "Phone sign-in isn't enabled for this project yet. In Firebase → Authentication → Sign-in method, enable Phone — or use email / Google.";
     case "auth/quota-exceeded":
       return "SMS limit reached for now. Try again later, or use email / Google.";
     case "auth/captcha-check-failed":
-      return "Verification check failed. Reload the page and try again.";
+    case "auth/invalid-app-credential":
+    case "auth/argument-error":
+      return "Phone verification failed to load. Reload the page and try again — or use email / Google to sign in.";
+    case "auth/billing-not-enabled":
+      return "Phone sign-in needs the Firebase Blaze plan. Use email / Google instead.";
     case "auth/popup-closed-by-user":
     case "auth/cancelled-popup-request":
       return "Sign-in was cancelled.";
@@ -434,7 +439,8 @@ function friendlyAuthError(err: unknown): string {
     case "auth/requires-recent-login":
       return "For security, sign out and sign in again before changing this.";
     default:
-      return "Couldn't complete that right now. Please try again in a moment.";
+      // Surface the raw code so an unexpected failure is at least diagnosable.
+      return `Couldn't complete that (${code}). Try again, or use email / Google.`;
   }
 }
 
@@ -469,7 +475,9 @@ class FirebaseAuthProvider implements AuthProvider {
     if (!container) {
       container = document.createElement("div");
       container.id = "rentlet-recaptcha-container";
-      container.style.display = "none";
+      // Keep it in the render tree — `display:none` makes the invisible reCAPTCHA fail to
+      // execute (auth/invalid-app-credential / argument-error). Park it off-screen instead.
+      container.style.cssText = "position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;";
       document.body.appendChild(container);
     }
     this.recaptcha = new RecaptchaVerifier(getFirebaseAuth(), container, { size: "invisible" });
