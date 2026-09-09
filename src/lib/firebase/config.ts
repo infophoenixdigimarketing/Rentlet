@@ -49,6 +49,11 @@ export const fcmVapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 // Firestore-backed service already has a real FirebaseXService implementation written and ready
 // (see lib/services/*.ts); flip this to `isFirebaseConfigured()` when Firestore should go live —
 // no other code changes needed.
+//
+// Kept OFF: the admin/staff consoles sign in with a local demo session (admin-auth.service.ts),
+// not a real Firebase user, so the owner/requester-scoped Firestore queries the dashboards run
+// come back empty for them. Until the consoles are wired to real Firebase admin accounts +
+// security rules, the dashboards run on seeded demo data while Firebase Auth stays real.
 export function isFirestoreEnabled(): boolean {
-  return isFirebaseConfigured();
+  return false;
 }

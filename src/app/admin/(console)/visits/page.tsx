@@ -19,6 +19,20 @@ const STATUS_STYLE: Record<VisitStatus, string> = {
 
 const FILTERS: (VisitStatus | "all")[] = ["all", "requested", "confirmed", "completed", "rejected"];
 
+// Visits store `date` either as "yyyy-mm-dd" (seed data) or "12 Sep" (booked via the modal).
+// Show something readable for both, and never a bare comma when it's missing.
+function formatVisitDate(date: string | null | undefined): string {
+  if (!date || !date.trim()) return "Date not set";
+  const iso = /^\d{4}-\d{2}-\d{2}$/.test(date.trim());
+  if (iso) {
+    const d = new Date(`${date.trim()}T00:00:00`);
+    if (!Number.isNaN(d.getTime())) {
+      return d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+    }
+  }
+  return date.trim();
+}
+
 // ScheduleVisitModal packs "Contact: +91 98765… — <note>" into the visit message.
 // Split it so admin sees the number on its own line and just the note as the quote.
 function splitContact(message: string | null): { phone: string | null; note: string | null } {
@@ -103,7 +117,8 @@ export default function AdminVisitsPage() {
                     <>
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-foreground/70">
                         <span className="inline-flex items-center gap-1">
-                          <CalendarClock className="h-3.5 w-3.5" /> {v.date}, {v.slot}
+                          <CalendarClock className="h-3.5 w-3.5" /> {formatVisitDate(v.date)}
+                          {v.slot ? ` · ${v.slot}` : ""}
                         </span>
                         <span className="inline-flex items-center gap-1">
                           <Users className="h-3.5 w-3.5" /> {v.visitorCount} visitor{v.visitorCount > 1 ? "s" : ""}
@@ -130,7 +145,7 @@ export default function AdminVisitsPage() {
                   <>
                     <button
                       type="button"
-                      onClick={() => respond(v.id, "confirmed", `Visit confirmed for ${v.date}, ${v.slot} — ${v.userName} notified.`)}
+                      onClick={() => respond(v.id, "confirmed", `Visit confirmed for ${formatVisitDate(v.date)}${v.slot ? `, ${v.slot}` : ""} — ${v.userName} notified.`)}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
                     >
                       <Check className="h-3.5 w-3.5" /> Confirm
