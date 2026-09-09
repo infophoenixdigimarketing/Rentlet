@@ -4,7 +4,7 @@ import { allProperties } from "@/lib/data/seed-properties";
 // Served at /sitemap.xml. Static marketing/search routes + one entry per publicly
 // discoverable property. In Firebase mode swap `allProperties` for a `where('status','==',
 // 'active')` + `where('verificationStatus','==','approved')` query.
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+import { SITE_URL } from "@/lib/site-url";
 
 const STATIC_PATHS: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"] }[] = [
   { path: "/", priority: 1, changeFrequency: "daily" },

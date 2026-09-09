@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site-url";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Hero } from "@/components/home/Hero";
 import { TrustBenefits } from "@/components/home/TrustBenefits";
@@ -44,7 +45,6 @@ function FeaturedPropertiesSkeleton() {
 // — splitting them would leave a "Flatmates" section with a single lonely card, which reads as
 // broken, not premium. Flatmates is still fully reachable (category card, purpose link, footer,
 // nav) — it just doesn't get its own mostly-empty carousel.
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
   // Root layout supplies the default title/description/OG — here we just pin the canonical.

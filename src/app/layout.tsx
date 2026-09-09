@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { SiteChrome } from "@/components/layout/SiteChrome";
 import { Toaster } from "@/components/ui/Toaster";
+import { SITE_URL } from "@/lib/site-url";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -11,7 +12,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Rentlet — Your Space. Your Choice.",
     template: "%s | Rentlet",

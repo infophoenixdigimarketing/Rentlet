@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 // Served at /robots.txt. Public marketing + search pages are crawlable; anything behind a
 // login (dashboards, account pages, the admin/staff consoles) and the API are not.
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+import { SITE_URL } from "@/lib/site-url";
 
 export default function robots(): MetadataRoute.Robots {
   return {

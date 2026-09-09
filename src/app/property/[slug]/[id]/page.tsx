@@ -19,7 +19,7 @@ import { RecordView } from "@/components/property/RecordView";
 import { UserGate } from "@/components/user/UserGate";
 import { JsonLd } from "@/components/seo/JsonLd";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+import { SITE_URL } from "@/lib/site-url";
 
 async function loadProperty(slug: string, id: string) {
   const property = await propertyRepository.getBySlugAndId(slug, id);
