@@ -26,9 +26,9 @@ export function Hero() {
       />
 
       <div className="container-rentlet relative pb-8 pt-4 sm:pb-10 sm:pt-5 lg:pb-10 lg:pt-6">
-        {/* Primary CTAs — first thing in the hero, on one row. Both live in the header too but
-            are hidden behind the mobile menu, so these keep them one tap away on any screen. */}
-        <div className="mb-4 flex animate-fade-up flex-wrap gap-2">
+        {/* Primary CTAs — mobile only (lg:hidden). On desktop both already sit in the header;
+            here they cover the small screens where the header hides them behind the menu. */}
+        <div className="mb-4 flex animate-fade-up flex-wrap gap-2 lg:hidden">
           <Link
             href="/post-property"
             className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-brand-navy shadow-lg shadow-black/25 transition-transform hover:-translate-y-0.5 sm:flex-none"
