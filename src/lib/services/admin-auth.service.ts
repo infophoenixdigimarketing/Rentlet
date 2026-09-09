@@ -27,6 +27,39 @@ function isBrowser() {
   return typeof window !== "undefined";
 }
 
+const DEMO_ADMIN: AdminUser = { name: "Rentlet Admin", email: DEMO_ADMIN_EMAIL, role: "superadmin" };
+
+/** A demo-admin session persisted to localStorage — used by both implementations so the
+ *  console is reachable in a Firebase-configured build without a real admin_users doc. */
+function readStoredAdmin(): AdminUser | null {
+  if (!isBrowser()) return null;
+  try {
+    const raw = window.localStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as AdminUser) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Firebase Auth errors read `Firebase: Error (auth/...)` — turn the ones the admin login can
+ *  hit into a plain sentence; pass our own thrown Errors (no `code`) through unchanged. */
+function adminLoginError(e: unknown): string {
+  if (e instanceof Error && !("code" in e) && e.message) return e.message;
+  const code = typeof e === "object" && e !== null && "code" in e ? String((e as { code: unknown }).code) : "";
+  switch (code) {
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+    case "auth/user-not-found":
+      return "Incorrect admin email or password.";
+    case "auth/too-many-requests":
+      return "Too many attempts. Wait a few minutes and try again.";
+    case "auth/network-request-failed":
+      return "Network error. Check your connection and try again.";
+    default:
+      return "Couldn't sign in to the admin console. Try again.";
+  }
+}
+
 export interface AdminAuthProvider {
   getCurrentAdmin(): AdminUser | null;
   subscribe(listener: (admin: AdminUser | null) => void): () => void;
@@ -86,30 +119,38 @@ async function loadAdminDoc(uid: string): Promise<AdminUser | null> {
 
 class FirebaseAdminAuthService implements AdminAuthProvider {
   private current: AdminUser | null = null;
+  private hydrated = false;
   private listeners: ((admin: AdminUser | null) => void)[] = [];
 
   constructor() {
     if (typeof window === "undefined") return;
+    this.current = readStoredAdmin();
+    this.hydrated = true;
     onAuthStateChanged(getFirebaseAuth(), async (firebaseUser) => {
+      // A stored demo-admin session always wins — it doesn't depend on Firebase at all.
+      const stored = readStoredAdmin();
+      if (stored) {
+        this.current = stored;
+        this.listeners.forEach((l) => l(stored));
+        return;
+      }
       if (!firebaseUser) {
         this.current = null;
         this.listeners.forEach((l) => l(null));
         return;
       }
+      // Signed into Firebase Auth: admin only if an admin_users/{uid} doc exists.
       const admin = await loadAdminDoc(firebaseUser.uid);
-      if (!admin) {
-        // Signed into Firebase Auth but not an admin — don't leak a session into the console.
-        // login() below still surfaces a clean error message for this case.
-        this.current = null;
-        this.listeners.forEach((l) => l(null));
-        return;
-      }
       this.current = admin;
       this.listeners.forEach((l) => l(admin));
     });
   }
 
   getCurrentAdmin(): AdminUser | null {
+    if (!this.hydrated && isBrowser()) {
+      this.current = readStoredAdmin();
+      this.hydrated = true;
+    }
     return this.current;
   }
 
@@ -121,19 +162,38 @@ class FirebaseAdminAuthService implements AdminAuthProvider {
   }
 
   async login(email: string, password: string): Promise<AdminUser> {
-    const credential = await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
-    const admin = await loadAdminDoc(credential.user.uid);
-    if (!admin) {
-      await signOut(getFirebaseAuth());
-      throw new Error("This account is not authorized for the admin console.");
+    // Demo backdoor — no Firebase user / admin_users doc needed. Kept for local dev and demos.
+    if (email.trim().toLowerCase() === DEMO_ADMIN_EMAIL && password === DEMO_ADMIN_PASSWORD) {
+      this.current = DEMO_ADMIN;
+      this.hydrated = true;
+      if (isBrowser()) window.localStorage.setItem(SESSION_KEY, JSON.stringify(DEMO_ADMIN));
+      this.listeners.forEach((l) => l(DEMO_ADMIN));
+      return DEMO_ADMIN;
     }
-    this.current = admin;
-    this.listeners.forEach((l) => l(admin));
-    return admin;
+    try {
+      const credential = await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+      const admin = await loadAdminDoc(credential.user.uid);
+      if (!admin) {
+        await signOut(getFirebaseAuth());
+        throw new Error("This account is not authorized for the admin console.");
+      }
+      this.current = admin;
+      this.listeners.forEach((l) => l(admin));
+      return admin;
+    } catch (e) {
+      throw new Error(adminLoginError(e));
+    }
   }
 
   async logout(): Promise<void> {
-    await signOut(getFirebaseAuth());
+    if (isBrowser()) window.localStorage.removeItem(SESSION_KEY);
+    this.current = null;
+    this.listeners.forEach((l) => l(null));
+    try {
+      await signOut(getFirebaseAuth());
+    } catch {
+      /* no Firebase session to end (demo-admin login) */
+    }
   }
 }
 
