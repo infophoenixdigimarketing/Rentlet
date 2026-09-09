@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
+import { BackButton } from "@/components/auth/BackButton";
 
 export function AuthShell({
   title,
@@ -23,15 +24,16 @@ export function AuthShell({
         aria-hidden
       />
       <div className="relative w-full max-w-md px-4">
-        <div className="mb-6 flex justify-center">
+        <BackButton />
+        <div className="mb-5 flex justify-center sm:mb-6">
           <Link href="/" aria-label="Rentlet home">
-            <Logo className="h-28 w-28 rounded-full shadow-xl shadow-black/20 sm:h-32 sm:w-32" />
+            <Logo className="h-20 w-20 rounded-full shadow-xl shadow-black/20 sm:h-28 sm:w-28" />
           </Link>
         </div>
-        <div className="rounded-2xl border border-border bg-white p-6 shadow-xl shadow-black/10 sm:p-8">
-          <h1 className="text-xl font-extrabold text-foreground">{title}</h1>
+        <div className="rounded-2xl border border-border bg-white p-5 shadow-xl shadow-black/10 sm:p-8">
+          <h1 className="text-lg font-extrabold text-foreground sm:text-xl">{title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-          <div className="mt-6">{children}</div>
+          <div className="mt-5 sm:mt-6">{children}</div>
         </div>
         {footer && <div className="mt-5 text-center text-sm text-foreground/70">{footer}</div>}
       </div>
