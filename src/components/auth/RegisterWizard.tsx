@@ -24,7 +24,7 @@ const LISTING_ROLES: { id: UserRole; label: string; description: string; icon: t
   { id: "builder", label: "Builder", description: "I list new projects and developments", icon: HardHat },
 ];
 
-export function RegisterWizard() {
+export function RegisterWizard({ redirectTo = "/" }: { redirectTo?: string }) {
   const [step, setStep] = useState<Step>("intent");
   const [role, setRole] = useState<UserRole | null>(null);
   const [name, setName] = useState("");
@@ -184,7 +184,7 @@ export function RegisterWizard() {
             label: "Mobile OTP",
             content:
               name.trim() && consentOk ? (
-                <PhoneOtpForm newUser={{ name, role: role!, email }} />
+                <PhoneOtpForm newUser={{ name, role: role!, email }} redirectTo={redirectTo} />
               ) : (
                 <p className="text-xs text-muted-foreground">
                   {!name.trim() ? "Enter your name above to continue." : "Accept the terms above to continue."}
@@ -196,7 +196,7 @@ export function RegisterWizard() {
             label: "Email",
             content:
               name.trim() && consentOk ? (
-                <EmailRegisterForm role={role!} name={name} email={email} />
+                <EmailRegisterForm role={role!} name={name} email={email} redirectTo={redirectTo} />
               ) : (
                 <p className="text-xs text-muted-foreground">
                   {!name.trim() ? "Enter your name above to continue." : "Accept the terms above to continue."}
@@ -212,7 +212,7 @@ export function RegisterWizard() {
         <div className="h-px flex-1 bg-border" />
       </div>
       {consentOk ? (
-        <GoogleButton role={role ?? undefined} />
+        <GoogleButton role={role ?? undefined} redirectTo={redirectTo} />
       ) : (
         <p className="text-center text-xs text-muted-foreground">Accept the terms above to continue with Google.</p>
       )}

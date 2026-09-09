@@ -5,7 +5,15 @@ import { RegisterWizard } from "@/components/auth/RegisterWizard";
 
 export const metadata: Metadata = { title: "Create Account" };
 
-export default function RegisterPage() {
+// Only allow same-origin path redirects (e.g. "/post-property") — never an absolute URL.
+function safeNext(value: string | string[] | undefined): string {
+  const v = Array.isArray(value) ? value[0] : value;
+  return v && v.startsWith("/") && !v.startsWith("//") ? v : "/";
+}
+
+export default async function RegisterPage(props: PageProps<"/register">) {
+  const next = safeNext((await props.searchParams).next);
+
   return (
     <AuthShell
       title="Join Rentlet"
@@ -23,7 +31,7 @@ export default function RegisterPage() {
         </>
       }
     >
-      <RegisterWizard />
+      <RegisterWizard redirectTo={next} />
     </AuthShell>
   );
 }

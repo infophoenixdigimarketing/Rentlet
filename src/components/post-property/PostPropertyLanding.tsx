@@ -378,6 +378,21 @@ export function PostPropertyLanding() {
                   {submitting ? "Verifying..." : "Continue"} <ArrowRight className="h-4 w-4" />
                 </Button>
 
+                <div className="mt-5 flex items-center gap-3">
+                  <span className="h-px flex-1 bg-border" />
+                  <span className="text-[11px] font-semibold text-muted-foreground">OR</span>
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+                <Link
+                  href="/register?next=/post-property"
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-brand-navy px-4 py-2.5 text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-navy hover:text-white"
+                >
+                  Sign up with Email or Google
+                </Link>
+                <p className="mt-2 text-center text-xs text-muted-foreground">
+                  Not getting the OTP? Use email / Google above — it lands you straight back here.
+                </p>
+
                 <p className="mt-4 text-center text-xs text-muted-foreground">
                   Need another way?{" "}
                   <a
