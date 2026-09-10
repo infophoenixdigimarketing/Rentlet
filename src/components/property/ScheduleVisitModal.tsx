@@ -31,6 +31,18 @@ const COUNTRY_CODES = [
 // Booking cutoff — a slot must be at least this many minutes away to be offered today.
 const LEAD_MINUTES = 30;
 
+// Split a stored account number ("+91 98765 00000" / "+919876500000") into a dial code we
+// offer and the local part. Falls back to +91 + last 10 digits.
+function splitAccountPhone(raw: string | null | undefined): { dial: string; local: string } {
+  if (!raw) return { dial: "+91", local: "" };
+  const compact = raw.replace(/[^\d+]/g, "");
+  const m = compact.match(/^(\+\d{1,3})(\d{6,14})$/);
+  if (m && COUNTRY_CODES.some((c) => c.code === m[1])) {
+    return { dial: m[1], local: m[1] === "+91" ? m[2].slice(-10) : m[2] };
+  }
+  return { dial: "+91", local: raw.replace(/\D/g, "").slice(-10) };
+}
+
 // "2:00 PM" -> minutes since midnight
 function slotToMinutes(s: string): number {
   const m = s.match(/^(\d+):(\d+)\s*(AM|PM)$/i);
@@ -93,17 +105,21 @@ export function ScheduleVisitModal({
     if (slot !== CUSTOM && !next.includes(slot)) setSlot(next[0] ?? CUSTOM);
   }
   const [visitors, setVisitors] = useState(1);
-  const [dialCode, setDialCode] = useState("+91");
-  // Prefill the contact number for a signed-in user (last 10 digits of their saved / OTP number).
-  const [phone, setPhone] = useState(() => (user?.phone ?? "").replace(/\D/g, "").slice(-10));
-  const [phoneTouched, setPhoneTouched] = useState(false);
-  const userLocalPhone = (user?.phone ?? "").replace(/\D/g, "").slice(-10);
+
+  // Contact number: a signed-in user already gave us one (OTP / their profile) — use it and
+  // hide the field. Only ask when the account genuinely has no number on file.
+  const acct = splitAccountPhone(user?.phone);
+  const hasAccountPhone = Boolean(user?.phone);
+  const [dialCode, setDialCode] = useState(acct.dial);
+  const [phone, setPhone] = useState(acct.local);
   useEffect(() => {
-    // One-shot: once auth hydrates (user?.phone can arrive a tick after mount), seed the field
-    // if the user hasn't started typing their own number.
+    // Auth can hydrate a tick after mount — pull the account number in once it's there.
+    if (!user?.phone) return;
+    const a = splitAccountPhone(user.phone);
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!phoneTouched && !phone && userLocalPhone) setPhone(userLocalPhone);
-  }, [userLocalPhone, phone, phoneTouched]);
+    setDialCode(a.dial);
+    setPhone(a.local);
+  }, [user?.phone]);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -118,7 +134,7 @@ export function ScheduleVisitModal({
       toast("Login to schedule a visit", "info");
       return;
     }
-    if (!phoneOk) {
+    if (!hasAccountPhone && !phoneOk) {
       toast(
         dialCode === "+91"
           ? "Contact number must be exactly 10 digits."
@@ -303,47 +319,46 @@ export function ScheduleVisitModal({
         </div>
       </div>
 
-      <div className="mt-4">
-        <label htmlFor="visit-phone" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Contact Number
-        </label>
-        <div className="mt-2 flex items-stretch">
-          <select
-            aria-label="Country code"
-            value={dialCode}
-            onChange={(e) => setDialCode(e.target.value)}
-            className="rounded-l-lg border border-r-0 border-border bg-muted px-2 text-sm font-semibold text-foreground outline-none focus:border-brand-navy"
-          >
-            {COUNTRY_CODES.map((c) => (
-              <option key={c.code} value={c.code}>{c.label}</option>
-            ))}
-          </select>
-          <input
-            id="visit-phone"
-            type="tel"
-            inputMode="numeric"
-            maxLength={14}
-            value={phone}
-            onChange={(e) => {
-              setPhoneTouched(true);
-              setPhone(e.target.value.replace(/\D/g, "").slice(0, 14));
-            }}
-            placeholder={dialCode === "+91" ? "10-digit mobile" : "Mobile number"}
-            aria-invalid={phoneInvalid}
-            className={cn(
-              "w-full rounded-r-lg border border-border px-3 py-2 text-sm outline-none focus:border-brand-navy",
-              phoneInvalid && "border-red-400 focus:border-red-500"
-            )}
-          />
+      {!hasAccountPhone && (
+        <div className="mt-4">
+          <label htmlFor="visit-phone" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Contact Number
+          </label>
+          <div className="mt-2 flex items-stretch">
+            <select
+              aria-label="Country code"
+              value={dialCode}
+              onChange={(e) => setDialCode(e.target.value)}
+              className="rounded-l-lg border border-r-0 border-border bg-muted px-2 text-sm font-semibold text-foreground outline-none focus:border-brand-navy"
+            >
+              {COUNTRY_CODES.map((c) => (
+                <option key={c.code} value={c.code}>{c.label}</option>
+              ))}
+            </select>
+            <input
+              id="visit-phone"
+              type="tel"
+              inputMode="numeric"
+              maxLength={14}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 14))}
+              placeholder={dialCode === "+91" ? "10-digit mobile" : "Mobile number"}
+              aria-invalid={phoneInvalid}
+              className={cn(
+                "w-full rounded-r-lg border border-border px-3 py-2 text-sm outline-none focus:border-brand-navy",
+                phoneInvalid && "border-red-400 focus:border-red-500"
+              )}
+            />
+          </div>
+          {phoneInvalid && (
+            <p className="mt-1 text-xs font-medium text-red-600">
+              {dialCode === "+91"
+                ? `Enter exactly 10 digits (${phone.length}/10).`
+                : "Enter 6–14 digits."}
+            </p>
+          )}
         </div>
-        {phoneInvalid && (
-          <p className="mt-1 text-xs font-medium text-red-600">
-            {dialCode === "+91"
-              ? `Enter exactly 10 digits (${phone.length}/10).`
-              : "Enter 6–14 digits."}
-          </p>
-        )}
-      </div>
+      )}
 
       <div className="mt-4">
         <label htmlFor="visit-message" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -363,7 +378,7 @@ export function ScheduleVisitModal({
         className="mt-5 w-full"
         size="lg"
         onClick={submit}
-        disabled={submitting || !phoneOk || !effectiveSlot}
+        disabled={submitting || (!hasAccountPhone && !phoneOk) || !effectiveSlot}
       >
         {submitting ? "Sending..." : "Submit Visit Request"}
       </Button>
