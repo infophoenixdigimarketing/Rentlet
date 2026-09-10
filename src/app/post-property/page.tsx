@@ -161,14 +161,18 @@ function PostPropertyLanding() {
   const phoneComplete = dialCode === "+91" ? phone.length === 10 : phone.length >= 6 && phone.length <= 14;
   const otpReady = otpSent && otp.length === 6;
 
+  // +91 numbers are exactly 10 digits — cap the input there; other codes allow up to 14.
+  const maxPhoneLen = dialCode === "+91" ? 10 : 14;
+
   function changePhone(value: string) {
-    setPhone(value.replace(/\D/g, "").slice(0, 14));
+    setPhone(value.replace(/\D/g, "").slice(0, maxPhoneLen));
     setOtpSent(false);
     setOtp("");
   }
 
   function changeDialCode(code: string) {
     setDialCode(code);
+    setPhone((p) => p.slice(0, code === "+91" ? 10 : 14));
     setOtpSent(false);
     setOtp("");
   }
@@ -314,7 +318,7 @@ function PostPropertyLanding() {
               <input
                 type="tel"
                 inputMode="numeric"
-                maxLength={14}
+                maxLength={maxPhoneLen}
                 value={phone}
                 onChange={(e) => changePhone(e.target.value)}
                 placeholder="Mobile Number"
@@ -1575,9 +1579,14 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
                             <input
                               type="tel"
                               inputMode="numeric"
-                              maxLength={14}
+                              maxLength={form.agentOwnerDial === "+91" ? 10 : 14}
                               value={form.agentOwnerPhone}
-                              onChange={(e) => set("agentOwnerPhone", e.target.value.replace(/\D/g, "").slice(0, 14))}
+                              onChange={(e) =>
+                                set(
+                                  "agentOwnerPhone",
+                                  e.target.value.replace(/\D/g, "").slice(0, form.agentOwnerDial === "+91" ? 10 : 14)
+                                )
+                              }
                               placeholder="98765 43210"
                               className="w-full border-0 bg-transparent py-2 text-base text-foreground outline-none placeholder:text-muted-foreground/70"
                             />
