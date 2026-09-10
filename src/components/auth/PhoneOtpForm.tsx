@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/Input";
@@ -45,6 +45,19 @@ export function PhoneOtpForm({
   const [stage, setStage] = useState<"phone" | "otp">("phone");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Seconds left before "Resend OTP" unlocks (60s countdown after each send).
+  const [resendIn, setResendIn] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    timerRef.current = setInterval(() => {
+      setResendIn((s) => (s <= 1 ? 0 : s - 1));
+    }, 1000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [resendIn > 0]); // eslint-disable-line react-hooks/exhaustive-deps -- restart only when the countdown toggles on/off
 
   // +91 numbers are exactly 10 digits; other codes accept 6–14.
   const maxLen = dialCode === "+91" ? 10 : 14;
@@ -72,6 +85,7 @@ export function PhoneOtpForm({
     try {
       await authService.sendOtp(e164);
       setStage("otp");
+      setResendIn(60);
       toast(DEMO_MODE ? "Demo mode — enter code 123456 (no SMS sent)." : `OTP sent to ${displayNumber}.`, "info");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't send OTP. Try again.");
@@ -168,6 +182,25 @@ export function PhoneOtpForm({
           Enter <strong>123456</strong> to continue, or use Email / Google.
         </p>
       )}
+
+      <p className="text-xs text-muted-foreground">
+        {resendIn > 0 ? (
+          <>Didn&apos;t get it? Resend in <span className="font-semibold tabular-nums">0:{String(resendIn).padStart(2, "0")}</span></>
+        ) : (
+          <>
+            Didn&apos;t get the code?{" "}
+            <button
+              type="button"
+              onClick={sendOtp}
+              disabled={loading}
+              className="font-semibold text-brand-navy hover:underline disabled:opacity-50"
+            >
+              {loading ? "Resending…" : "Resend OTP"}
+            </button>
+          </>
+        )}
+      </p>
+
       <Button onClick={verify} disabled={loading || code.length < 6} size="lg">
         {loading ? "Verifying..." : "Verify & Continue"}
       </Button>
