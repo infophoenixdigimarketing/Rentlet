@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useAuth } from "@/lib/auth";
-import { useNotifications } from "@/lib/notifications";
+import { useNotifications, notificationsForRole } from "@/lib/notifications";
 import { notificationsService } from "@/lib/services/notifications.service";
 import { timeAgo, cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/Button";
@@ -51,7 +51,8 @@ const ACCENTS: Record<NotificationType, string> = {
 
 export default function NotificationsPage() {
   const { user } = useAuth();
-  const notifications = useNotifications();
+  const allNotifications = useNotifications();
+  const notifications = notificationsForRole(allNotifications, user?.role);
 
   if (!user) {
     return (

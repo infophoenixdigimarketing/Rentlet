@@ -68,8 +68,15 @@ const NAV_MENUS: { label: string; href: string; icon: LucideIcon; items: NavItem
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  // Mobile menu: which top-level category (Rent/Buy/Sell/Lease) is expanded. One at a time.
+  const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
   const [lang, setLang] = useState<LangCode>("en");
   const { user } = useAuth();
+
+  function closeMenu() {
+    setOpen(false);
+    setExpandedMenu(null);
+  }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot hydration from a cookie
@@ -159,7 +166,7 @@ export function Header() {
           <button
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
-            onClick={() => setOpen((v) => !v)}
+            onClick={() => (open ? closeMenu() : setOpen(true))}
             className="rounded-full p-2 text-foreground/80 hover:bg-muted"
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -174,30 +181,44 @@ export function Header() {
         )}
       >
         <nav className="container-rentlet flex flex-col gap-1 py-3" aria-label="Mobile">
-          {NAV_MENUS.map((menu) => (
-            <div key={menu.label}>
-              <Link
-                href={menu.href}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-bold text-foreground/85 hover:bg-muted"
-              >
-                <menu.icon className="h-4 w-4 text-brand-orange" strokeWidth={2} />
-                {menu.label}
-              </Link>
-              <div className="ml-3 flex flex-col border-l border-border pl-2">
-                {menu.items.map((item) => (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className="rounded-lg px-3 py-2 text-sm font-medium text-foreground/75 hover:bg-muted"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+          {NAV_MENUS.map((menu) => {
+            const expanded = expandedMenu === menu.label;
+            return (
+              <div key={menu.label}>
+                <button
+                  type="button"
+                  aria-expanded={expanded}
+                  onClick={() => setExpandedMenu(expanded ? null : menu.label)}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-bold text-foreground/85 hover:bg-muted"
+                >
+                  <menu.icon className="h-4 w-4 text-brand-orange" strokeWidth={2} />
+                  {menu.label}
+                  <ChevronDown className={cn("ml-auto h-4 w-4 text-muted-foreground transition-transform", expanded && "rotate-180")} />
+                </button>
+                {expanded && (
+                  <div className="ml-3 flex flex-col border-l border-border pl-2">
+                    <Link
+                      href={menu.href}
+                      onClick={closeMenu}
+                      className="rounded-lg px-3 py-2 text-sm font-semibold text-brand-navy hover:bg-muted"
+                    >
+                      All {menu.label}
+                    </Link>
+                    {menu.items.map((item) => (
+                      <Link
+                        key={item.label}
+                        href={item.href}
+                        onClick={closeMenu}
+                        className="rounded-lg px-3 py-2 text-sm font-medium text-foreground/75 hover:bg-muted"
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {MENU_SECTIONS.map((section) => (
             <div key={section.heading} className="mt-2 border-t border-border pt-2">

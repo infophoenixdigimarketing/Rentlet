@@ -2,9 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Menu, ChevronDown, Check } from "lucide-react";
+import { Menu, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { LANGUAGES, readActiveLang, switchLanguage, type LangCode } from "@/lib/translate";
 
 export type MenuLink = { label: string; href: string };
 
@@ -62,13 +61,7 @@ export const MENU_SECTIONS: { heading: string; links: MenuLink[] }[] = [
 
 export function HeaderMenu() {
   const [open, setOpen] = useState(false);
-  const [lang, setLang] = useState<LangCode>("en");
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot hydration from a cookie
-    setLang(readActiveLang());
-  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -103,36 +96,7 @@ export function HeaderMenu() {
       {open && (
         <div className="absolute right-0 top-full z-50 mt-2 w-72 origin-top-right overflow-hidden rounded-2xl border border-border bg-white shadow-2xl shadow-black/10">
           <div className="max-h-[70vh] overflow-y-auto p-1.5">
-            {/* Language — same switch as the header globe, mirrored here */}
-            <div className="notranslate border-b border-border px-1.5 py-1.5" translate="no">
-              <p className="px-1 pb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                Language
-              </p>
-              <div className="flex flex-col">
-                {LANGUAGES.map((l) => (
-                  <button
-                    key={l.code}
-                    type="button"
-                    onClick={() => {
-                      setOpen(false);
-                      setLang(l.code);
-                      switchLanguage(l.code);
-                    }}
-                    className={cn(
-                      "flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-sm font-medium hover:bg-muted",
-                      l.code === lang ? "text-brand-navy" : "text-foreground/85"
-                    )}
-                  >
-                    <span className="min-w-0 truncate text-left">
-                      {l.label}
-                      {l.en !== l.label && <span className="text-muted-foreground"> ({l.en})</span>}
-                    </span>
-                    {l.code === lang && <Check className="h-4 w-4 shrink-0 text-brand-orange" />}
-                  </button>
-                ))}
-              </div>
-            </div>
-
+            {/* Language switcher lives in its own header control on desktop — not duplicated here. */}
             {MENU_SECTIONS.map((section) => (
               <div key={section.heading} className="px-1.5 py-1.5">
                 <p className="px-1 pb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">

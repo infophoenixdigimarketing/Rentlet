@@ -17,7 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { useNotifications } from "@/lib/notifications";
+import { useNotifications, notificationsForRole } from "@/lib/notifications";
 import { notificationsService } from "@/lib/services/notifications.service";
 import { timeAgo, cn } from "@/lib/utils";
 import type { NotificationType } from "@/types/notification";
@@ -50,7 +50,8 @@ const ACCENTS: Record<NotificationType, string> = {
 
 export function NotificationBell({ className }: { className?: string }) {
   const { user } = useAuth();
-  const notifications = useNotifications();
+  const allNotifications = useNotifications();
+  const notifications = notificationsForRole(allNotifications, user?.role);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const unread = notifications.filter((n) => !n.read).length;

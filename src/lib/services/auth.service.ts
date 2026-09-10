@@ -553,10 +553,18 @@ class FirebaseAuthProvider implements AuthProvider {
     if (!firebaseUser) throw new Error("Not signed in.");
 
     if (patch.name) await updateFirebaseDisplayName(firebaseUser, { displayName: patch.name });
-    if (patch.email) {
-      // Changing the Auth email can require a recent login (auth/requires-recent-login) — that's
-      // a real Firebase constraint, not a bug here.
-      await updateFirebaseEmail(firebaseUser, patch.email).catch(() => {});
+    if (patch.email && patch.email.trim().toLowerCase() !== (firebaseUser.email ?? "").toLowerCase()) {
+      try {
+        await updateFirebaseEmail(firebaseUser, patch.email.trim());
+      } catch (e) {
+        // Surface real reasons instead of silently "succeeding".
+        const code = typeof e === "object" && e !== null && "code" in e ? String((e as { code: unknown }).code) : "";
+        if (code === "auth/email-already-in-use")
+          throw new Error("That email is already used by another account.");
+        if (code === "auth/requires-recent-login")
+          throw new Error("For security, log out and log back in, then change your email.");
+        throw new Error(friendlyAuthError(e));
+      }
     }
     if (patch.phone !== undefined) {
       const extras = ensureLocalProfile(firebaseUser.uid);

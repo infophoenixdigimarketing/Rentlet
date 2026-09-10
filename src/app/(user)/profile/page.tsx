@@ -13,6 +13,7 @@ import { propertyRepository } from "@/lib/services/properties.service";
 import { priceLabel } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import type { Property } from "@/types/property";
+import type { AuthUser } from "@/types/user";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -32,12 +33,27 @@ export default function ProfilePage() {
 
   if (!user) return null;
   const initials = user.name.split(" ").map((n) => n[0]).join("").slice(0, 2);
+  // A phone that came from OTP sign-in is a verified credential — don't let a stray Save wipe it.
+  const phoneLocked = Boolean(user.phone);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    if (!user) return;
+
+    // Only send fields the user actually changed — never blank out an untouched phone/email.
+    const patch: Partial<Pick<AuthUser, "name" | "email" | "phone">> = {};
+    if (name.trim() && name.trim() !== user.name) patch.name = name.trim();
+    if (email.trim() !== (user.email ?? "")) patch.email = email.trim() || null;
+    if (!phoneLocked && phone.trim() !== (user.phone ?? "")) patch.phone = phone.trim() || null;
+
+    if (Object.keys(patch).length === 0) {
+      toast("No changes to save.", "info");
+      return;
+    }
+
     setSaving(true);
     try {
-      await authService.updateProfile({ name: name.trim(), email: email.trim() || null, phone: phone.trim() || null });
+      await authService.updateProfile(patch);
       toast("Profile updated");
     } catch (err) {
       toast(err instanceof Error ? err.message : "Couldn't update profile", "error");
@@ -69,7 +85,20 @@ export default function ProfilePage() {
 
         <form onSubmit={save} className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input label="Full Name" value={name} onChange={(e) => setName(e.target.value)} />
-          <Input label="Phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Not set" />
+          <div className="flex flex-col gap-1.5">
+            <Input
+              label="Phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Not set"
+              disabled={phoneLocked}
+              className={phoneLocked ? "bg-muted text-muted-foreground" : undefined}
+            />
+            {phoneLocked && (
+              <span className="text-[11px] text-muted-foreground">Verified by OTP — can’t be changed here.</span>
+            )}
+          </div>
           <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Not set" className="sm:col-span-2" />
           <div className="sm:col-span-2">
             <Button type="submit" disabled={saving}>

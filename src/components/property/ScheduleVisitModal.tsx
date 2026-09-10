@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -94,7 +94,16 @@ export function ScheduleVisitModal({
   }
   const [visitors, setVisitors] = useState(1);
   const [dialCode, setDialCode] = useState("+91");
-  const [phone, setPhone] = useState("");
+  // Prefill the contact number for a signed-in user (last 10 digits of their saved / OTP number).
+  const [phone, setPhone] = useState(() => (user?.phone ?? "").replace(/\D/g, "").slice(-10));
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const userLocalPhone = (user?.phone ?? "").replace(/\D/g, "").slice(-10);
+  useEffect(() => {
+    // One-shot: once auth hydrates (user?.phone can arrive a tick after mount), seed the field
+    // if the user hasn't started typing their own number.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!phoneTouched && !phone && userLocalPhone) setPhone(userLocalPhone);
+  }, [userLocalPhone, phone, phoneTouched]);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -315,7 +324,10 @@ export function ScheduleVisitModal({
             inputMode="numeric"
             maxLength={14}
             value={phone}
-            onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 14))}
+            onChange={(e) => {
+              setPhoneTouched(true);
+              setPhone(e.target.value.replace(/\D/g, "").slice(0, 14));
+            }}
             placeholder={dialCode === "+91" ? "10-digit mobile" : "Mobile number"}
             aria-invalid={phoneInvalid}
             className={cn(
