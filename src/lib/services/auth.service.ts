@@ -478,24 +478,28 @@ class FirebaseAuthProvider implements AuthProvider {
 
   private getRecaptcha(): RecaptchaVerifier {
     if (this.recaptcha) return this.recaptcha;
-    // ONE persistent container that is never removed — grecaptcha keeps internal references
-    // to this node, and deleting it mid-flight crashes its script ("reading 'style' of null").
-    // `display:none` also breaks the invisible widget, so park it off-screen instead.
-    let container = document.getElementById("rentlet-recaptcha-container");
-    if (!container) {
-      container = document.createElement("div");
-      container.id = "rentlet-recaptcha-container";
-      container.style.cssText = "position:absolute;left:-10000px;top:0;";
-      document.body.appendChild(container);
+    // A stable host that is NEVER removed (deleting a node grecaptcha still references crashes
+    // its script — "reading 'style' of null"). `display:none` also breaks the invisible widget,
+    // so it's parked off-screen. Each verifier gets its OWN fresh child inside the host, so a
+    // rebuilt verifier never lands on an element that already holds a widget ("already rendered
+    // in this element"). Safe to wipe here: resetRecaptcha() has already called clear().
+    let host = document.getElementById("rentlet-recaptcha-host");
+    if (!host) {
+      host = document.createElement("div");
+      host.id = "rentlet-recaptcha-host";
+      host.style.cssText = "position:absolute;left:-10000px;top:0;";
+      document.body.appendChild(host);
     }
-    this.recaptcha = new RecaptchaVerifier(getFirebaseAuth(), container, { size: "invisible" });
+    host.innerHTML = "";
+    const target = document.createElement("div");
+    host.appendChild(target);
+    this.recaptcha = new RecaptchaVerifier(getFirebaseAuth(), target, { size: "invisible" });
     return this.recaptcha;
   }
 
   private resetRecaptcha() {
-    // Drop only the verifier object; leave its DOM container in place for the next one.
     try {
-      this.recaptcha?.clear();
+      this.recaptcha?.clear(); // releases grecaptcha's DOM references
     } catch {
       /* already torn down */
     }
