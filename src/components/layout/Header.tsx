@@ -220,50 +220,79 @@ export function Header() {
             );
           })}
 
-          {MENU_SECTIONS.map((section) => (
-            <div key={section.heading} className="mt-2 border-t border-border pt-2">
-              <p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                {section.heading}
-              </p>
-              {section.links.map((l) => (
-                <Link
-                  key={l.label + l.href}
-                  href={l.href}
-                  onClick={() => setOpen(false)}
-                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/85 hover:bg-muted"
+          {MENU_SECTIONS.map((section) => {
+            const expanded = expandedMenu === section.heading;
+            return (
+              <div key={section.heading} className="mt-1 border-t border-border pt-1">
+                <button
+                  type="button"
+                  aria-expanded={expanded}
+                  onClick={() => setExpandedMenu(expanded ? null : section.heading)}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-bold text-foreground/85 hover:bg-muted"
                 >
-                  {l.label}
-                </Link>
-              ))}
-            </div>
-          ))}
-
-          {/* Language — no globe menu on mobile, so offer it in the panel */}
-          <div className="notranslate mt-2 border-t border-border pt-2" translate="no">
-            <p className="flex items-center gap-1.5 px-3 pb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-              <Globe className="h-3.5 w-3.5" /> Language
-            </p>
-            {LANGUAGES.map((l) => (
-              <button
-                key={l.code}
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  setLang(l.code);
-                  switchLanguage(l.code);
-                }}
-                className={cn(
-                  "flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-muted",
-                  l.code === lang ? "text-brand-navy" : "text-foreground/85"
+                  {section.heading}
+                  <ChevronDown className={cn("ml-auto h-4 w-4 text-muted-foreground transition-transform", expanded && "rotate-180")} />
+                </button>
+                {expanded && (
+                  <div className="ml-3 flex flex-col border-l border-border pl-2">
+                    {section.links.map((l) => (
+                      <Link
+                        key={l.label + l.href}
+                        href={l.href}
+                        onClick={closeMenu}
+                        className="rounded-lg px-3 py-2 text-sm font-medium text-foreground/75 hover:bg-muted"
+                      >
+                        {l.label}
+                      </Link>
+                    ))}
+                  </div>
                 )}
-              >
-                <span className="min-w-0 truncate text-left">
-                  {l.label}
-                  {l.en !== l.label && <span className="text-muted-foreground"> ({l.en})</span>}
-                </span>
-                {l.code === lang && <Check className="h-4 w-4 shrink-0 text-brand-orange" />}
-              </button>
-            ))}
+              </div>
+            );
+          })}
+
+          {/* Language — no globe menu on mobile, so offer it in the panel (collapsed) */}
+          <div className="notranslate mt-1 border-t border-border pt-1" translate="no">
+            <button
+              type="button"
+              aria-expanded={expandedMenu === "__lang__"}
+              onClick={() => setExpandedMenu(expandedMenu === "__lang__" ? null : "__lang__")}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-bold text-foreground/85 hover:bg-muted"
+            >
+              <Globe className="h-4 w-4 text-brand-orange" />
+              Language
+              <ChevronDown
+                className={cn(
+                  "ml-auto h-4 w-4 text-muted-foreground transition-transform",
+                  expandedMenu === "__lang__" && "rotate-180"
+                )}
+              />
+            </button>
+            {expandedMenu === "__lang__" && (
+              <div className="ml-3 flex flex-col border-l border-border pl-2">
+                {LANGUAGES.map((l) => (
+                  <button
+                    key={l.code}
+                    type="button"
+                    onClick={() => {
+                      closeMenu();
+                      setLang(l.code);
+                      switchLanguage(l.code);
+                    }}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-muted",
+                      l.code === lang ? "text-brand-navy" : "text-foreground/85"
+                    )}
+                  >
+                    <span className="min-w-0 truncate text-left">
+                      {l.label}
+                      {l.en !== l.label && <span className="text-muted-foreground"> ({l.en})</span>}
+                    </span>
+                    {l.code === lang && <Check className="h-4 w-4 shrink-0 text-brand-orange" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="mt-3 flex gap-2 px-1">
