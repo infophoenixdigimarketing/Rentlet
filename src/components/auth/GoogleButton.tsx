@@ -2,90 +2,44 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Modal } from "@/components/ui/Modal";
-import { authService, GOOGLE_DEMO_ACCOUNTS, type GoogleDemoAccount } from "@/lib/services/auth.service";
+import { authService } from "@/lib/services/auth.service";
 import { toast } from "@/lib/toast";
 import type { UserRole } from "@/types/user";
 
-// Real Google Sign-In needs an OAuth client (Phase 12 — Firebase Auth). This mock reproduces
-// the *shape* of the flow (an account picker) without a real consent screen, so the UI is
-// honest about being a demo rather than a dead button.
 export function GoogleButton({
   redirectTo = "/",
   role,
 }: {
   redirectTo?: string;
-  /** From the register flow — sets the picked account's role (owner / agent / builder / …). */
+  /** From the register flow — sets the account's role (owner / agent / builder / …) on first sign-in. */
   role?: UserRole;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  function initials(name: string) {
-    return name
-      .split(" ")
-      .map((p) => p[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-  }
-
-  async function choose(account: GoogleDemoAccount) {
-    setLoadingId(account.id);
+  async function signIn() {
+    setLoading(true);
     try {
-      const user = await authService.loginWithGoogle(account, role);
-      setOpen(false);
+      const user = await authService.loginWithGoogle(undefined, role);
       toast(`Welcome, ${user.name.split(" ")[0]}!`);
       router.push(redirectTo);
-    } catch {
-      toast("Google sign-in failed. Try again.", "error");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Google sign-in failed. Try again.", "error");
     } finally {
-      setLoadingId(null);
+      setLoading(false);
     }
   }
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-border bg-white text-sm font-semibold text-foreground hover:bg-muted"
-      >
-        <GoogleG />
-        Continue with Google
-      </button>
-
-      <Modal open={open} onClose={() => setOpen(false)} title="Choose an account" className="sm:max-w-xs">
-        <p className="text-xs text-muted-foreground">to continue to Rentlet (demo sign-in)</p>
-        <div className="mt-4 flex flex-col gap-2">
-          {GOOGLE_DEMO_ACCOUNTS.map((account) => (
-            <button
-              key={account.id}
-              type="button"
-              onClick={() => choose(account)}
-              disabled={loadingId !== null}
-              className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left hover:bg-muted disabled:opacity-60"
-            >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-navy-light text-sm font-bold text-brand-navy">
-                {initials(account.name)}
-              </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold text-foreground">{account.name}</span>
-                <span className="block truncate text-xs text-muted-foreground">{account.email}</span>
-              </span>
-              {loadingId === account.id && (
-                <span className="ml-auto text-xs font-medium text-muted-foreground">Signing in…</span>
-              )}
-            </button>
-          ))}
-        </div>
-        <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
-          This demo skips real Google OAuth — Phase 12 wires Firebase Auth&apos;s actual Google
-          provider here.
-        </p>
-      </Modal>
-    </>
+    <button
+      type="button"
+      onClick={signIn}
+      disabled={loading}
+      className="inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-border bg-white text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-60"
+    >
+      <GoogleG />
+      {loading ? "Opening Google…" : "Continue with Google"}
+    </button>
   );
 }
 

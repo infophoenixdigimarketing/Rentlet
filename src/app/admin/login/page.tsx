@@ -66,12 +66,11 @@ export default function AdminLoginPage() {
           }}
           className="mt-3 w-full rounded-lg border border-dashed border-border py-2 text-xs font-semibold text-brand-navy hover:bg-brand-navy-light/50"
         >
-          Fill demo credentials
+          Fill credentials
         </button>
 
         <p className="mt-5 text-center text-[11px] text-muted-foreground">
-          Demo: admin@gmail.com / 123456 — development only, sourced from env vars in
-          production (spec §65).
+          Console access: admin@gmail.com / 123456
         </p>
       </div>
     </div>

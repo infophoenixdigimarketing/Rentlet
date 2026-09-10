@@ -42,9 +42,6 @@ export function EmailLoginForm({ redirectTo = "/" }: { redirectTo?: string }) {
       <Button type="submit" size="lg" disabled={loading}>
         {loading ? "Signing in..." : "Login"}
       </Button>
-      <p className="text-center text-[11px] text-muted-foreground">
-        Demo: demo.tenant@rentlet.in / rentlet123 (or demo.owner@rentlet.in, demo.user@gmail.com)
-      </p>
     </form>
   );
 }

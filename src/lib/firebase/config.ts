@@ -14,13 +14,26 @@
 // this config). Get them from Firebase Console → Project settings → General → "Your apps" →
 // Web app → SDK setup and configuration → Config.
 
+// Live "rentlet-prod" web-app config. These are baked in as defaults so a production build
+// works with no .env file — the Firebase web config is public by design (not a secret;
+// access is controlled by Firebase Auth authorized domains + Firestore/Storage rules).
+// Set NEXT_PUBLIC_FIREBASE_* env vars only to point the build at a different project.
+const DEFAULTS = {
+  apiKey: "AIzaSyCWzDS7MF6xO_xqExnmXbU7UeF4LkxqLCg",
+  authDomain: "rentlet-prod.firebaseapp.com",
+  projectId: "rentlet-prod",
+  storageBucket: "rentlet-prod.firebasestorage.app",
+  messagingSenderId: "110186502565",
+  appId: "1:110186502565:web:6d1445255352eab59a304c",
+};
+
 export const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || DEFAULTS.apiKey,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || DEFAULTS.authDomain,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || DEFAULTS.projectId,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || DEFAULTS.storageBucket,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || DEFAULTS.messagingSenderId,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || DEFAULTS.appId,
 };
 
 let cached: boolean | null = null;

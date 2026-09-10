@@ -65,7 +65,7 @@ export default function StaffLoginPage() {
         </form>
 
         <p className="mt-5 text-center text-[11px] text-muted-foreground">
-          Demo: staff@rentlet.in / RentletStaff@123 — development only.
+          Staff access: staff@rentlet.in / RentletStaff@123
         </p>
       </div>
     </div>

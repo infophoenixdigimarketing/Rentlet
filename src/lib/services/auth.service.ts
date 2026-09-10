@@ -31,16 +31,15 @@ interface StoredUser extends AuthUser {
   password: string | null;
 }
 
-/** Accounts shown in the "Continue with Google" picker (mock — real OAuth is Phase 12). */
+/** Shape kept for the offline/mock fallback only — the live build uses real Google OAuth
+ *  (signInWithPopup), which returns the actual signed-in account and ignores this. */
 export interface GoogleDemoAccount {
   id: string;
   name: string;
   email: string;
 }
 export const GOOGLE_DEMO_ACCOUNTS: GoogleDemoAccount[] = [
-  { id: "demo-google", name: "Rahul Sharma", email: "rahul.sharma@gmail.com" },
-  { id: "demo-google-2", name: "Priya Nair", email: "priya.nair@gmail.com" },
-  { id: "demo-google-3", name: "Vikram Reddy", email: "vikram.reddy@gmail.com" },
+  { id: "google-user", name: "Rentlet User", email: "user@example.com" },
 ];
 
 export interface AuthProvider {
@@ -64,40 +63,10 @@ function isBrowser() {
   return typeof window !== "undefined";
 }
 
+/** No pre-seeded accounts on the live build — every user is a real Firebase sign-up.
+ *  (This only ever runs in the offline/mock fallback, which starts with an empty store.) */
 function seedUsers(): StoredUser[] {
-  const now = new Date().toISOString();
-  return [
-    {
-      id: "demo-tenant",
-      name: "Aisha Fernandes",
-      email: "demo.tenant@rentlet.in",
-      phone: "+91 98765 43210",
-      role: "tenant",
-      isVerified: true,
-      createdAt: now,
-      password: "rentlet123",
-    },
-    {
-      id: "demo-owner",
-      name: "Arvind Menon",
-      email: "demo.owner@rentlet.in",
-      phone: "+91 91234 56789",
-      role: "owner",
-      isVerified: true,
-      createdAt: now,
-      password: "rentlet123",
-    },
-    {
-      id: "demo-gmail",
-      name: "Rohit Sharma",
-      email: "demo.user@gmail.com",
-      phone: "+91 99887 76655",
-      role: "buyer",
-      isVerified: true,
-      createdAt: now,
-      password: "rentlet123",
-    },
-  ];
+  return [];
 }
 
 function loadUsers(): StoredUser[] {
