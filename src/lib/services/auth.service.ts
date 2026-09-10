@@ -478,17 +478,27 @@ class FirebaseAuthProvider implements AuthProvider {
 
   private getRecaptcha(): RecaptchaVerifier {
     if (this.recaptcha) return this.recaptcha;
-    let container = document.getElementById("rentlet-recaptcha-container");
-    if (!container) {
-      container = document.createElement("div");
-      container.id = "rentlet-recaptcha-container";
-      // Keep it in the render tree — `display:none` makes the invisible reCAPTCHA fail to
-      // execute (auth/invalid-app-credential / argument-error). Park it off-screen instead.
-      container.style.cssText = "position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;";
-      document.body.appendChild(container);
-    }
+    // Always start from a clean container — a leftover one from a previous (failed) attempt
+    // still holds a spent grecaptcha widget and makes the next call fail to load.
+    document.getElementById("rentlet-recaptcha-container")?.remove();
+    const container = document.createElement("div");
+    container.id = "rentlet-recaptcha-container";
+    // Keep it in the render tree — `display:none` makes the invisible reCAPTCHA fail to
+    // execute (auth/invalid-app-credential / argument-error). Park it off-screen instead.
+    container.style.cssText = "position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;";
+    document.body.appendChild(container);
     this.recaptcha = new RecaptchaVerifier(getFirebaseAuth(), container, { size: "invisible" });
     return this.recaptcha;
+  }
+
+  private resetRecaptcha() {
+    try {
+      this.recaptcha?.clear();
+    } catch {
+      /* already torn down */
+    }
+    this.recaptcha = null;
+    document.getElementById("rentlet-recaptcha-container")?.remove();
   }
 
   async sendOtp(phone: string): Promise<void> {
@@ -496,6 +506,10 @@ class FirebaseAuthProvider implements AuthProvider {
       this.confirmationResult = await signInWithPhoneNumber(getFirebaseAuth(), phone, this.getRecaptcha());
     } catch (e) {
       throw new Error(friendlyAuthError(e));
+    } finally {
+      // The invisible reCAPTCHA token is single-use — drop the verifier so the next
+      // Send OTP (retry or resend) builds a fresh one instead of failing to load.
+      this.resetRecaptcha();
     }
   }
 
