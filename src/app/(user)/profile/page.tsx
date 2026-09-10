@@ -43,7 +43,14 @@ export default function ProfilePage() {
     // Only send fields the user actually changed — never blank out an untouched phone/email.
     const patch: Partial<Pick<AuthUser, "name" | "email" | "phone">> = {};
     if (name.trim() && name.trim() !== user.name) patch.name = name.trim();
-    if (email.trim() !== (user.email ?? "")) patch.email = email.trim() || null;
+    if (email.trim() !== (user.email ?? "")) {
+      // You can correct your email, but you can't remove it once it's set.
+      if (!email.trim() && user.email) {
+        toast("Your email can’t be left blank — enter a valid address.", "error");
+        return;
+      }
+      if (email.trim()) patch.email = email.trim();
+    }
     if (!phoneLocked && phone.trim() !== (user.phone ?? "")) patch.phone = phone.trim() || null;
 
     if (Object.keys(patch).length === 0) {
@@ -99,7 +106,19 @@ export default function ProfilePage() {
               <span className="text-[11px] text-muted-foreground">Verified by OTP — can’t be changed here.</span>
             )}
           </div>
-          <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Not set" className="sm:col-span-2" />
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <Input
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Not set"
+              required={Boolean(user.email)}
+            />
+            {user.email && (
+              <span className="text-[11px] text-muted-foreground">You can correct this, but it can’t be removed.</span>
+            )}
+          </div>
           <div className="sm:col-span-2">
             <Button type="submit" disabled={saving}>
               {saving ? "Saving..." : "Save Changes"}
