@@ -313,6 +313,9 @@ interface LocalProfileExtras {
   /** Firebase Auth's phoneNumber field is only ever set via phone-OTP sign-in and isn't
    *  directly editable — profile edits to phone (email/password + Google accounts) land here. */
   phoneOverride?: string | null;
+  /** Phone-OTP sign-ups have no Firebase Auth email, but the register form still collects one
+   *  as a contact address — it's kept here (and editable from the profile page). */
+  emailOverride?: string | null;
 }
 
 function loadLocalProfile(uid: string): LocalProfileExtras | null {
@@ -330,20 +333,36 @@ function saveLocalProfile(uid: string, extras: LocalProfileExtras) {
   window.localStorage.setItem(FB_PROFILE_KEY_PREFIX + uid, JSON.stringify(extras));
 }
 
-function ensureLocalProfile(uid: string, defaults: { role?: UserRole } = {}): LocalProfileExtras {
+function ensureLocalProfile(uid: string, defaults: { role?: UserRole; email?: string | null } = {}): LocalProfileExtras {
   const existing = loadLocalProfile(uid);
-  if (existing) return existing;
-  const created: LocalProfileExtras = { role: defaults.role ?? "tenant", isVerified: false, createdAt: new Date().toISOString() };
+  if (existing) {
+    // Backfill a contact email captured at sign-up if it wasn't stored yet (older sessions).
+    if (defaults.email && !existing.emailOverride) {
+      const merged = { ...existing, emailOverride: defaults.email };
+      saveLocalProfile(uid, merged);
+      return merged;
+    }
+    return existing;
+  }
+  const created: LocalProfileExtras = {
+    role: defaults.role ?? "tenant",
+    isVerified: false,
+    createdAt: new Date().toISOString(),
+    emailOverride: defaults.email ?? undefined,
+  };
   saveLocalProfile(uid, created);
   return created;
 }
 
-function firebaseUserToAuthUser(firebaseUser: FirebaseUser, defaults: { name?: string; role?: UserRole } = {}): AuthUser {
+function firebaseUserToAuthUser(
+  firebaseUser: FirebaseUser,
+  defaults: { name?: string; role?: UserRole; email?: string | null } = {}
+): AuthUser {
   const extras = ensureLocalProfile(firebaseUser.uid, defaults);
   return {
     id: firebaseUser.uid,
     name: defaults.name ?? firebaseUser.displayName ?? "Rentlet User",
-    email: firebaseUser.email,
+    email: firebaseUser.email ?? extras.emailOverride ?? defaults.email ?? null,
     phone: extras.phoneOverride ?? firebaseUser.phoneNumber,
     role: extras.role,
     isVerified: extras.isVerified,
@@ -553,19 +572,30 @@ class FirebaseAuthProvider implements AuthProvider {
     if (!firebaseUser) throw new Error("Not signed in.");
 
     if (patch.name) await updateFirebaseDisplayName(firebaseUser, { displayName: patch.name });
-    if (patch.email && patch.email.trim().toLowerCase() !== (firebaseUser.email ?? "").toLowerCase()) {
-      try {
-        await updateFirebaseEmail(firebaseUser, patch.email.trim());
-      } catch (e) {
-        // Surface real reasons instead of silently "succeeding".
-        const code = typeof e === "object" && e !== null && "code" in e ? String((e as { code: unknown }).code) : "";
-        if (code === "auth/email-already-in-use")
-          throw new Error("That email is already used by another account.");
-        if (code === "auth/requires-recent-login")
-          throw new Error("For security, log out and log back in, then change your email.");
-        throw new Error(friendlyAuthError(e));
+
+    if (patch.email !== undefined) {
+      const nextEmail = patch.email?.trim() || null;
+      if (firebaseUser.email) {
+        // This account has a real email credential — change it in Firebase Auth.
+        if (nextEmail && nextEmail.toLowerCase() !== firebaseUser.email.toLowerCase()) {
+          try {
+            await updateFirebaseEmail(firebaseUser, nextEmail);
+          } catch (e) {
+            const code = typeof e === "object" && e !== null && "code" in e ? String((e as { code: unknown }).code) : "";
+            if (code === "auth/email-already-in-use")
+              throw new Error("That email is already used by another account.");
+            if (code === "auth/requires-recent-login")
+              throw new Error("For security, log out and log back in, then change your email.");
+            throw new Error(friendlyAuthError(e));
+          }
+        }
+      } else {
+        // Phone-OTP account has no Auth email — keep the contact address in the local profile.
+        const extras = ensureLocalProfile(firebaseUser.uid);
+        saveLocalProfile(firebaseUser.uid, { ...extras, emailOverride: nextEmail });
       }
     }
+
     if (patch.phone !== undefined) {
       const extras = ensureLocalProfile(firebaseUser.uid);
       saveLocalProfile(firebaseUser.uid, { ...extras, phoneOverride: patch.phone });
