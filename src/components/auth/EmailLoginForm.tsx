@@ -6,7 +6,16 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { authService } from "@/lib/services/auth.service";
+import { WELCOME_KEY } from "@/components/layout/WelcomeBanner";
 import { toast } from "@/lib/toast";
+
+function greet(text: string) {
+  try {
+    window.sessionStorage.setItem(WELCOME_KEY, text);
+  } catch {
+    /* fall back to the toast below */
+  }
+}
 
 export function EmailLoginForm({ redirectTo = "/" }: { redirectTo?: string }) {
   const router = useRouter();
@@ -21,7 +30,9 @@ export function EmailLoginForm({ redirectTo = "/" }: { redirectTo?: string }) {
     setLoading(true);
     try {
       const user = await authService.loginWithEmail(email, password);
-      toast(`Welcome back, ${user.name.split(" ")[0]}!`);
+      const first = user.name.split(" ")[0] || "there";
+      greet(`Welcome back, ${first}! Good to see you again.`);
+      toast(`Welcome back, ${first}!`);
       router.push(redirectTo);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");

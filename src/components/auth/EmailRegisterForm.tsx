@@ -6,8 +6,17 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { authService } from "@/lib/services/auth.service";
 import { isFirebaseConfigured } from "@/lib/firebase/config";
+import { WELCOME_KEY } from "@/components/layout/WelcomeBanner";
 import { toast } from "@/lib/toast";
 import type { UserRole } from "@/types/user";
+
+function greet(text: string) {
+  try {
+    window.sessionStorage.setItem(WELCOME_KEY, text);
+  } catch {
+    /* fall back to the toast */
+  }
+}
 
 export function EmailRegisterForm({
   role,
@@ -51,11 +60,12 @@ export function EmailRegisterForm({
         role,
       });
       const first = user.name.split(" ")[0] || "there";
-      toast(
+      greet(
         isFirebaseConfigured()
           ? `Welcome to Rentlet, ${first}! We've emailed a verification link to ${effectiveEmail} — confirm it to secure your account.`
-          : `Welcome to Rentlet, ${first}!`
+          : `Welcome to Rentlet, ${first}! Your account is ready.`
       );
+      toast(`Welcome to Rentlet, ${first}!`);
       router.push(redirectTo);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong.";
@@ -64,7 +74,9 @@ export function EmailRegisterForm({
       if (/already exists/i.test(message)) {
         try {
           const user = await authService.loginWithEmail(effectiveEmail, password);
-          toast(`Welcome back, ${user.name.split(" ")[0]}!`);
+          const first = user.name.split(" ")[0] || "there";
+          greet(`Welcome back, ${first}! Good to see you again.`);
+          toast(`Welcome back, ${first}!`);
           router.push(redirectTo);
           return;
         } catch (loginErr) {

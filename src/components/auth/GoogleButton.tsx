@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/lib/services/auth.service";
+import { WELCOME_KEY } from "@/components/layout/WelcomeBanner";
 import { toast } from "@/lib/toast";
 import type { UserRole } from "@/types/user";
 
@@ -21,7 +22,13 @@ export function GoogleButton({
     setLoading(true);
     try {
       const user = await authService.loginWithGoogle(undefined, role);
-      toast(`Welcome, ${user.name.split(" ")[0]}!`);
+      const first = user.name.split(" ")[0] || "there";
+      try {
+        window.sessionStorage.setItem(WELCOME_KEY, `Welcome, ${first}! You're signed in with Google.`);
+      } catch {
+        /* fall back to the toast */
+      }
+      toast(`Welcome, ${first}!`);
       router.push(redirectTo);
     } catch (err) {
       toast(err instanceof Error ? err.message : "Google sign-in failed. Try again.", "error");

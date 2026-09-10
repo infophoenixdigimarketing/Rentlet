@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { authService } from "@/lib/services/auth.service";
 import { isFirebaseConfigured } from "@/lib/firebase/config";
+import { WELCOME_KEY } from "@/components/layout/WelcomeBanner";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/user";
@@ -84,7 +85,16 @@ export function PhoneOtpForm({
     setLoading(true);
     try {
       const user = await authService.verifyOtp(e164, code, newUser);
-      toast(`Welcome${newUser ? "" : " back"}, ${user.name.split(" ")[0]}!`);
+      const first = user.name.split(" ")[0] || "there";
+      try {
+        window.sessionStorage.setItem(
+          WELCOME_KEY,
+          newUser ? `Welcome to Rentlet, ${first}! Your account is ready.` : `Welcome back, ${first}! Good to see you again.`
+        );
+      } catch {
+        /* fall back to the toast */
+      }
+      toast(`Welcome${newUser ? " to Rentlet" : " back"}, ${first}!`);
       router.push(redirectTo);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
