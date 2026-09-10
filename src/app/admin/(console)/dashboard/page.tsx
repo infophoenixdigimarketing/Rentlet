@@ -29,7 +29,6 @@ export default function AdminDashboardPage() {
   const openReports = reports.filter((r) => r.status === "pending" || r.status === "investigating").length;
   const totalLeads = properties.reduce((sum, p) => sum + p.leadsCount, 0);
   const revenue = 428500; // Phase 12: real Razorpay/Cashfree settlement totals
-  const activeSubs = 214;
 
   const dailyUsers = trendFrom(2).map((v, i) => ({ label: DAY_LABELS[i], value: v }));
   const rentListings = trendFrom(4).map((v, i) => ({ label: DAY_LABELS[i], value: Math.round(v * 0.7) }));
@@ -53,7 +52,6 @@ export default function AdminDashboardPage() {
         <StatCard label="Reported Properties" value={openReports.toLocaleString("en-IN")} icon={Flag} deltaIsGood={false} sparkline={trendFrom(6, 8)} accent="#FF5A00" />
         <StatCard label="Total Leads" value={totalLeads.toLocaleString("en-IN")} icon={TrendingUp} delta={9} sparkline={trendFrom(7, 8)} />
         <StatCard label="Revenue (MTD)" value={formatINR(revenue, true)} icon={CreditCard} delta={14} sparkline={trendFrom(8, 8)} />
-        <StatCard label="Active Subscriptions" value={activeSubs.toLocaleString("en-IN")} icon={CreditCard} delta={4} sparkline={trendFrom(9, 8)} />
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
