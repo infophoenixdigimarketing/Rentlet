@@ -391,7 +391,14 @@ function friendlyAuthError(err: unknown): string {
     typeof err === "object" && err !== null && "code" in err
       ? String((err as { code: unknown }).code)
       : "";
-  if (!code) return err instanceof Error && err.message ? err.message : "Something went wrong. Please try again.";
+  const rawMsg = err instanceof Error && err.message ? err.message : "";
+  if (!code) return rawMsg || "Something went wrong. Please try again.";
+  // auth/operation-not-allowed covers two very different causes — the Phone provider being
+  // off, and SMS to the caller's country being blocked by the SMS region policy. The message
+  // text is the only way to tell them apart.
+  if (code === "auth/operation-not-allowed" && /region/i.test(rawMsg)) {
+    return "SMS to your country is turned off. In Firebase → Authentication → Settings → SMS region policy, allow your region (or set Deny with an empty list) — or use email / Google.";
+  }
   switch (code) {
     case "auth/invalid-credential":
     case "auth/wrong-password":
