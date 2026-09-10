@@ -323,18 +323,11 @@ function PostPropertyLanding() {
               />
             </span>
 
-            <select
+            <CityPicker
               value={city}
-              onChange={(e) => setCity(e.target.value)}
-              className={cn(LEAD_FIELD, city === "" && "text-muted-foreground/70")}
-            >
-              <option value="">Select City</option>
-              {allCities.map((c) => (
-                <option key={c.id} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              onChange={setCity}
+              triggerClassName={cn(LEAD_FIELD, "flex items-center gap-2")}
+            />
           </div>
 
           <label className="mt-4 flex items-center gap-2.5 text-sm text-foreground">
@@ -618,7 +611,16 @@ const CITY_ALIASES: Record<string, string> = {
 };
 
 /** Click-to-open city dropdown — shows the full list; typing just filters it. */
-function CityPicker({ value, onChange }: { value: string; onChange: (city: string) => void }) {
+function CityPicker({
+  value,
+  onChange,
+  triggerClassName,
+}: {
+  value: string;
+  onChange: (city: string) => void;
+  /** Override the trigger button styling (e.g. the boxed lead form vs. the underline wizard field). */
+  triggerClassName?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -666,10 +668,13 @@ function CityPicker({ value, onChange }: { value: string; onChange: (city: strin
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-2 border-b border-border py-2 text-left outline-none focus:border-brand-navy"
+        className={
+          triggerClassName ??
+          "flex w-full items-center gap-2 border-b border-border py-2 text-left outline-none focus:border-brand-navy"
+        }
       >
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <span className={cn("flex-1 text-base", value ? "text-foreground" : "text-muted-foreground/70")}>
+        <span className={cn("flex-1 text-left text-base", value ? "text-foreground" : "text-muted-foreground/70")}>
           {value || "Select City"}
         </span>
         <ChevronDown
