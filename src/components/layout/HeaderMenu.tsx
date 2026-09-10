@@ -61,15 +61,22 @@ export const MENU_SECTIONS: { heading: string; links: MenuLink[] }[] = [
 
 export function HeaderMenu() {
   const [open, setOpen] = useState(false);
+  // Which section is expanded — one at a time, matching the mobile menu accordion.
+  const [expanded, setExpanded] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+
+  function close() {
+    setOpen(false);
+    setExpanded(null);
+  }
 
   useEffect(() => {
     if (!open) return;
     function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) close();
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") close();
     }
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
@@ -83,7 +90,7 @@ export function HeaderMenu() {
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? close() : setOpen(true))}
         aria-haspopup="true"
         aria-expanded={open}
         className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-foreground/80 transition-colors hover:bg-muted hover:text-brand-navy"
@@ -95,27 +102,41 @@ export function HeaderMenu() {
 
       {open && (
         <div className="absolute right-0 top-full z-50 mt-2 w-72 origin-top-right overflow-hidden rounded-2xl border border-border bg-white shadow-2xl shadow-black/10">
+          {/* Collapsible sections — same accordion behaviour as the mobile menu. Language
+              switcher lives in its own header control on desktop, so it's not repeated here. */}
           <div className="max-h-[70vh] overflow-y-auto p-1.5">
-            {/* Language switcher lives in its own header control on desktop — not duplicated here. */}
-            {MENU_SECTIONS.map((section) => (
-              <div key={section.heading} className="px-1.5 py-1.5">
-                <p className="px-1 pb-1 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                  {section.heading}
-                </p>
-                <div className="flex flex-col">
-                  {section.links.map((l) => (
-                    <Link
-                      key={l.label + l.href}
-                      href={l.href}
-                      onClick={() => setOpen(false)}
-                      className="rounded-lg px-2.5 py-2 text-sm font-medium text-foreground/85 hover:bg-muted hover:text-brand-navy"
-                    >
-                      {l.label}
-                    </Link>
-                  ))}
+            {MENU_SECTIONS.map((section) => {
+              const isOpen = expanded === section.heading;
+              return (
+                <div key={section.heading}>
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    onClick={() => setExpanded(isOpen ? null : section.heading)}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2.5 text-sm font-bold text-foreground/85 hover:bg-muted"
+                  >
+                    {section.heading}
+                    <ChevronDown
+                      className={cn("ml-auto h-4 w-4 text-muted-foreground transition-transform", isOpen && "rotate-180")}
+                    />
+                  </button>
+                  {isOpen && (
+                    <div className="mb-1 ml-2 flex flex-col border-l border-border pl-2">
+                      {section.links.map((l) => (
+                        <Link
+                          key={l.label + l.href}
+                          href={l.href}
+                          onClick={close}
+                          className="rounded-lg px-2.5 py-2 text-sm font-medium text-foreground/75 hover:bg-muted hover:text-brand-navy"
+                        >
+                          {l.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
