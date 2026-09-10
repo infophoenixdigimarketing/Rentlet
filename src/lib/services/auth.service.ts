@@ -336,13 +336,19 @@ function saveLocalProfile(uid: string, extras: LocalProfileExtras) {
 function ensureLocalProfile(uid: string, defaults: { role?: UserRole; email?: string | null } = {}): LocalProfileExtras {
   const existing = loadLocalProfile(uid);
   if (existing) {
-    // Backfill a contact email captured at sign-up if it wasn't stored yet (older sessions).
-    if (defaults.email && !existing.emailOverride) {
-      const merged = { ...existing, emailOverride: defaults.email };
-      saveLocalProfile(uid, merged);
-      return merged;
+    let next = existing;
+    // The register flow re-runs with an explicit role — honour a switch (e.g. someone who
+    // first signed up "looking for property" comes back and registers as an owner/agent).
+    // `defaults.role` is only set from the register/verify path, never from onAuthStateChanged.
+    if (defaults.role && defaults.role !== next.role) {
+      next = { ...next, role: defaults.role };
     }
-    return existing;
+    // Backfill a contact email captured at sign-up if it wasn't stored yet (older sessions).
+    if (defaults.email && !next.emailOverride) {
+      next = { ...next, emailOverride: defaults.email };
+    }
+    if (next !== existing) saveLocalProfile(uid, next);
+    return next;
   }
   const created: LocalProfileExtras = {
     role: defaults.role ?? "tenant",
