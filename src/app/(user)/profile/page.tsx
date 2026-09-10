@@ -33,8 +33,10 @@ export default function ProfilePage() {
 
   if (!user) return null;
   const initials = user.name.split(" ").map((n) => n[0]).join("").slice(0, 2);
-  // A phone that came from OTP sign-in is a verified credential — don't let a stray Save wipe it.
+  // The phone (from OTP) and the email (from sign-up) are identity fields — shown, not editable
+  // here, so a stray Save can't change or wipe them.
   const phoneLocked = Boolean(user.phone);
+  const emailLocked = Boolean(user.email);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -43,14 +45,7 @@ export default function ProfilePage() {
     // Only send fields the user actually changed — never blank out an untouched phone/email.
     const patch: Partial<Pick<AuthUser, "name" | "email" | "phone">> = {};
     if (name.trim() && name.trim() !== user.name) patch.name = name.trim();
-    if (email.trim() !== (user.email ?? "")) {
-      // You can correct your email, but you can't remove it once it's set.
-      if (!email.trim() && user.email) {
-        toast("Your email can’t be left blank — enter a valid address.", "error");
-        return;
-      }
-      if (email.trim()) patch.email = email.trim();
-    }
+    if (!emailLocked && email.trim() && email.trim() !== (user.email ?? "")) patch.email = email.trim();
     if (!phoneLocked && phone.trim() !== (user.phone ?? "")) patch.phone = phone.trim() || null;
 
     if (Object.keys(patch).length === 0) {
@@ -113,10 +108,11 @@ export default function ProfilePage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Not set"
-              required={Boolean(user.email)}
+              disabled={emailLocked}
+              className={emailLocked ? "bg-muted text-muted-foreground" : undefined}
             />
-            {user.email && (
-              <span className="text-[11px] text-muted-foreground">You can correct this, but it can’t be removed.</span>
+            {emailLocked && (
+              <span className="text-[11px] text-muted-foreground">Set at sign-up — can’t be changed here.</span>
             )}
           </div>
           <div className="sm:col-span-2">
