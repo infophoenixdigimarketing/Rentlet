@@ -8,11 +8,26 @@ import { Button } from "@/components/ui/Button";
 import { authService } from "@/lib/services/auth.service";
 import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/user";
 
 // No Firebase keys => the mock auth provider is in use: it never sends a real SMS and accepts
 // the fixed code 123456. Say so plainly instead of leaving "123456" as a mystery placeholder.
 const DEMO_MODE = !isFirebaseConfigured();
+
+const COUNTRY_CODES = [
+  { code: "+91", label: "🇮🇳 +91" },
+  { code: "+1", label: "🇺🇸 +1" },
+  { code: "+44", label: "🇬🇧 +44" },
+  { code: "+971", label: "🇦🇪 +971" },
+  { code: "+65", label: "🇸🇬 +65" },
+  { code: "+61", label: "🇦🇺 +61" },
+  { code: "+49", label: "🇩🇪 +49" },
+  { code: "+92", label: "🇵🇰 +92" },
+  { code: "+880", label: "🇧🇩 +880" },
+  { code: "+94", label: "🇱🇰 +94" },
+  { code: "+977", label: "🇳🇵 +977" },
+];
 
 export function PhoneOtpForm({
   redirectTo = "/",
@@ -23,19 +38,32 @@ export function PhoneOtpForm({
   newUser?: { name: string; role: UserRole; email?: string };
 }) {
   const router = useRouter();
+  const [dialCode, setDialCode] = useState("+91");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [stage, setStage] = useState<"phone" | "otp">("phone");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Firebase phone auth needs an E.164 number (+<country><number>); the field only collects
-  // the 10-digit Indian subscriber number, so prefix +91 before handing it to the service.
-  const e164 = `+91${phone}`;
+  // +91 numbers are exactly 10 digits; other codes accept 6–14.
+  const maxLen = dialCode === "+91" ? 10 : 14;
+  const phoneOk = dialCode === "+91" ? phone.length === 10 : phone.length >= 6 && phone.length <= 14;
+  // Firebase phone auth needs an E.164 number (+<country><subscriber>).
+  const e164 = `${dialCode}${phone}`;
+  const displayNumber = `${dialCode} ${phone}`;
+
+  function changePhone(value: string) {
+    setPhone(value.replace(/\D/g, "").slice(0, maxLen));
+  }
+
+  function changeDial(value: string) {
+    setDialCode(value);
+    setPhone((p) => p.slice(0, value === "+91" ? 10 : 14));
+  }
 
   async function sendOtp() {
-    if (phone.length !== 10) {
-      setError("Mobile number must be exactly 10 digits.");
+    if (!phoneOk) {
+      setError(dialCode === "+91" ? "Mobile number must be exactly 10 digits." : "Enter a valid number (6–14 digits).");
       return;
     }
     setError(null);
@@ -43,7 +71,7 @@ export function PhoneOtpForm({
     try {
       await authService.sendOtp(e164);
       setStage("otp");
-      toast(DEMO_MODE ? "Demo mode — enter code 123456 (no SMS sent)." : `OTP sent to +91 ${phone}.`, "info");
+      toast(DEMO_MODE ? "Demo mode — enter code 123456 (no SMS sent)." : `OTP sent to ${displayNumber}.`, "info");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't send OTP. Try again.");
     } finally {
@@ -68,17 +96,38 @@ export function PhoneOtpForm({
   if (stage === "phone") {
     return (
       <div className="flex flex-col gap-3">
-        <Input
-          label="Mobile Number"
-          type="tel"
-          inputMode="numeric"
-          maxLength={10}
-          placeholder="9876543210"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-          error={error ?? undefined}
-        />
-        <Button onClick={sendOtp} disabled={loading || phone.length !== 10} size="lg">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold text-foreground/80">Mobile Number</span>
+          <span className="flex items-stretch">
+            <select
+              aria-label="Country code"
+              value={dialCode}
+              onChange={(e) => changeDial(e.target.value)}
+              className="h-11 shrink-0 rounded-l-xl border border-r-0 border-border bg-muted px-2 text-sm font-semibold text-foreground outline-none focus:border-brand-navy"
+            >
+              {COUNTRY_CODES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <input
+              type="tel"
+              inputMode="numeric"
+              maxLength={maxLen}
+              placeholder={dialCode === "+91" ? "9876543210" : "Mobile number"}
+              value={phone}
+              onChange={(e) => changePhone(e.target.value)}
+              aria-invalid={Boolean(error)}
+              className={cn(
+                "h-11 w-full rounded-r-xl border border-border bg-white px-3.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-brand-navy",
+                error && "border-red-400 focus:border-red-500"
+              )}
+            />
+          </span>
+          {error && <span className="text-xs font-medium text-red-600">{error}</span>}
+        </label>
+        <Button onClick={sendOtp} disabled={loading || !phoneOk} size="lg">
           {loading ? "Sending..." : "Send OTP"}
         </Button>
       </div>
@@ -89,7 +138,7 @@ export function PhoneOtpForm({
     <div className="flex flex-col gap-3">
       <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />{" "}
-        {DEMO_MODE ? `Demo — no SMS sent to ${phone}.` : `Code sent to +91 ${phone}.`}{" "}
+        {DEMO_MODE ? `Demo — no SMS sent to ${displayNumber}.` : `Code sent to ${displayNumber}.`}{" "}
         <button type="button" onClick={() => setStage("phone")} className="font-semibold text-brand-navy hover:underline">
           Change
         </button>
