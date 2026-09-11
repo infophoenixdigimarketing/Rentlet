@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -14,34 +14,8 @@ import { useAuth } from "@/lib/auth";
 const SLOTS = ["10:00 AM", "11:30 AM", "2:00 PM", "4:30 PM", "6:00 PM"];
 const CUSTOM = "__custom__";
 
-// Dial codes offered on the contact field.
-const COUNTRY_CODES = [
-  { code: "+91", label: "🇮🇳 +91" },
-  { code: "+1", label: "🇺🇸 +1" },
-  { code: "+44", label: "🇬🇧 +44" },
-  { code: "+971", label: "🇦🇪 +971" },
-  { code: "+65", label: "🇸🇬 +65" },
-  { code: "+61", label: "🇦🇺 +61" },
-  { code: "+49", label: "🇩🇪 +49" },
-  { code: "+92", label: "🇵🇰 +92" },
-  { code: "+880", label: "🇧🇩 +880" },
-  { code: "+94", label: "🇱🇰 +94" },
-  { code: "+977", label: "🇳🇵 +977" },
-];
 // Booking cutoff — a slot must be at least this many minutes away to be offered today.
 const LEAD_MINUTES = 30;
-
-// Split a stored account number ("+91 98765 00000" / "+919876500000") into a dial code we
-// offer and the local part. Falls back to +91 + last 10 digits.
-function splitAccountPhone(raw: string | null | undefined): { dial: string; local: string } {
-  if (!raw) return { dial: "+91", local: "" };
-  const compact = raw.replace(/[^\d+]/g, "");
-  const m = compact.match(/^(\+\d{1,3})(\d{6,14})$/);
-  if (m && COUNTRY_CODES.some((c) => c.code === m[1])) {
-    return { dial: m[1], local: m[1] === "+91" ? m[2].slice(-10) : m[2] };
-  }
-  return { dial: "+91", local: raw.replace(/\D/g, "").slice(-10) };
-}
 
 // "2:00 PM" -> minutes since midnight
 function slotToMinutes(s: string): number {
@@ -105,42 +79,18 @@ export function ScheduleVisitModal({
     if (slot !== CUSTOM && !next.includes(slot)) setSlot(next[0] ?? CUSTOM);
   }
   const [visitors, setVisitors] = useState(1);
-
-  // Contact number: a signed-in user already gave us one (OTP / their profile) — use it and
-  // hide the field. Only ask when the account genuinely has no number on file.
-  const acct = splitAccountPhone(user?.phone);
-  const hasAccountPhone = Boolean(user?.phone);
-  const [dialCode, setDialCode] = useState(acct.dial);
-  const [phone, setPhone] = useState(acct.local);
-  useEffect(() => {
-    // Auth can hydrate a tick after mount — pull the account number in once it's there.
-    if (!user?.phone) return;
-    const a = splitAccountPhone(user.phone);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDialCode(a.dial);
-    setPhone(a.local);
-  }, [user?.phone]);
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // +91 keeps the strict 10-digit rule; other countries accept 6–14 digits.
-  const phoneOk = dialCode === "+91" ? phone.length === 10 : phone.length >= 6 && phone.length <= 14;
-  const phoneInvalid = phone.length > 0 && !phoneOk;
+  // No separate contact-number field — the owner reaches the requester through their account
+  // (phone if they have one on file, otherwise the in-app lead/chat).
+  const contactPhone = user?.phone ?? null;
   // The time actually sent — a preset slot, or the user's own preferred time.
   const effectiveSlot = slot === CUSTOM ? customLabel : slot;
 
   function submit() {
     if (!user) {
       toast("Login to schedule a visit", "info");
-      return;
-    }
-    if (!hasAccountPhone && !phoneOk) {
-      toast(
-        dialCode === "+91"
-          ? "Contact number must be exactly 10 digits."
-          : "Enter a valid contact number (6–14 digits).",
-        "error"
-      );
       return;
     }
     if (!effectiveSlot) {
@@ -153,8 +103,8 @@ export function ScheduleVisitModal({
     }
     setSubmitting(true);
     const dateLabel = days[dayIndex].toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-    const contactLine = `Contact: ${dialCode} ${phone}`;
-    const fullMessage = message.trim() ? `${contactLine} — ${message.trim()}` : contactLine;
+    const contactLine = contactPhone ? `Contact: ${contactPhone}` : null;
+    const fullMessage = [contactLine, message.trim() || null].filter(Boolean).join(" — ");
     setTimeout(() => {
       setSubmitting(false);
       onClose();
@@ -176,7 +126,7 @@ export function ScheduleVisitModal({
         propertyTitle,
         ownerId,
         userName: user.name,
-        userPhone: `${dialCode} ${phone}`,
+        userPhone: contactPhone ?? "Not shared",
         source: "visit",
       });
       onSubmit?.({ date: dateLabel, slot: effectiveSlot, visitors, message: fullMessage });
@@ -319,47 +269,6 @@ export function ScheduleVisitModal({
         </div>
       </div>
 
-      {!hasAccountPhone && (
-        <div className="mt-4">
-          <label htmlFor="visit-phone" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Contact Number
-          </label>
-          <div className="mt-2 flex items-stretch">
-            <select
-              aria-label="Country code"
-              value={dialCode}
-              onChange={(e) => setDialCode(e.target.value)}
-              className="rounded-l-lg border border-r-0 border-border bg-muted px-2 text-sm font-semibold text-foreground outline-none focus:border-brand-navy"
-            >
-              {COUNTRY_CODES.map((c) => (
-                <option key={c.code} value={c.code}>{c.label}</option>
-              ))}
-            </select>
-            <input
-              id="visit-phone"
-              type="tel"
-              inputMode="numeric"
-              maxLength={14}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 14))}
-              placeholder={dialCode === "+91" ? "10-digit mobile" : "Mobile number"}
-              aria-invalid={phoneInvalid}
-              className={cn(
-                "w-full rounded-r-lg border border-border px-3 py-2 text-sm outline-none focus:border-brand-navy",
-                phoneInvalid && "border-red-400 focus:border-red-500"
-              )}
-            />
-          </div>
-          {phoneInvalid && (
-            <p className="mt-1 text-xs font-medium text-red-600">
-              {dialCode === "+91"
-                ? `Enter exactly 10 digits (${phone.length}/10).`
-                : "Enter 6–14 digits."}
-            </p>
-          )}
-        </div>
-      )}
-
       <div className="mt-4">
         <label htmlFor="visit-message" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Message (optional)
@@ -374,12 +283,7 @@ export function ScheduleVisitModal({
         />
       </div>
 
-      <Button
-        className="mt-5 w-full"
-        size="lg"
-        onClick={submit}
-        disabled={submitting || (!hasAccountPhone && !phoneOk) || !effectiveSlot}
-      >
+      <Button className="mt-5 w-full" size="lg" onClick={submit} disabled={submitting || !effectiveSlot}>
         {submitting ? "Sending..." : "Submit Visit Request"}
       </Button>
     </Modal>
