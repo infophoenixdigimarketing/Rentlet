@@ -1,7 +1,10 @@
 "use client";
 
-import { UserRound, Heart, Bookmark, CalendarClock, Bell } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { UserRound, Heart, Bookmark, CalendarClock, Bell, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { authService } from "@/lib/services/auth.service";
+import { toast } from "@/lib/toast";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 
 const LINKS = [
@@ -14,9 +17,16 @@ const LINKS = [
 
 export function UserSidebar() {
   const { user } = useAuth();
+  const router = useRouter();
   if (!user) return null;
 
   const initials = user.name.split(" ").map((n) => n[0]).join("").slice(0, 2);
+
+  async function logout() {
+    await authService.logout();
+    toast("Logged out");
+    router.push("/");
+  }
 
   return (
     <div className="lg:w-56 lg:shrink-0">
@@ -31,6 +41,14 @@ export function UserSidebar() {
       </div>
 
       <SidebarNav links={LINKS} ariaLabel="My account" />
+
+      <button
+        type="button"
+        onClick={logout}
+        className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 lg:justify-start"
+      >
+        <LogOut className="h-4 w-4" /> Logout
+      </button>
     </div>
   );
 }

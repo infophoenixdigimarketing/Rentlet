@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Menu, X, Search, Bell, UserCircle2, ChevronDown, Check, Globe, KeyRound, IndianRupee, Tag, FileSignature, PlusCircle, ScrollText, type LucideIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Menu, X, Bell, UserCircle2, ChevronDown, Check, Globe, KeyRound, IndianRupee, Tag, FileSignature, PlusCircle, ScrollText, LogOut, type LucideIcon } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { buttonVariants } from "@/components/ui/Button";
 import { UserMenu } from "@/components/layout/UserMenu";
@@ -10,7 +11,9 @@ import { NotificationBell } from "@/components/layout/NotificationBell";
 import { HeaderMenu, MENU_SECTIONS } from "@/components/layout/HeaderMenu";
 import { LanguageMenu } from "@/components/layout/LanguageMenu";
 import { LANGUAGES, readActiveLang, switchLanguage, type LangCode } from "@/lib/translate";
+import { authService } from "@/lib/services/auth.service";
 import { useAuth } from "@/lib/auth";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 // Top nav: Rent / Buy / Sell, each opening a property-type submenu. Every href goes to the real,
@@ -72,10 +75,20 @@ export function Header() {
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
   const [lang, setLang] = useState<LangCode>("en");
   const { user } = useAuth();
+  const router = useRouter();
 
   function closeMenu() {
     setOpen(false);
     setExpandedMenu(null);
+  }
+
+  // UserMenu (with its own Logout) only renders in the desktop actions bar — the mobile panel
+  // needs its own way out.
+  async function logout() {
+    closeMenu();
+    await authService.logout();
+    toast("Logged out");
+    router.push("/");
   }
 
   useEffect(() => {
@@ -150,9 +163,6 @@ export function Header() {
         </div>
 
         <div className="flex shrink-0 items-center gap-0.5 lg:hidden">
-          <button aria-label="Search" className="rounded-full p-2 text-foreground/80 hover:bg-muted">
-            <Search className="h-5 w-5" />
-          </button>
           {user ? (
             <NotificationBell />
           ) : (
@@ -312,6 +322,16 @@ export function Header() {
               {user ? user.name.split(" ")[0] : "Login"}
             </Link>
           </div>
+
+          {user && (
+            <button
+              type="button"
+              onClick={logout}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 px-3 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+            >
+              <LogOut className="h-4 w-4" /> Logout
+            </button>
+          )}
         </nav>
       </div>
     </header>
