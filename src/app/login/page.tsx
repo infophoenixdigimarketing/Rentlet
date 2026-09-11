@@ -32,8 +32,8 @@ export default async function LoginPage(props: PageProps<"/login">) {
     >
       <MethodTabs
         tabs={[
-          { id: "phone", label: "Mobile OTP", content: <PhoneOtpForm redirectTo={next} /> },
           { id: "email", label: "Email", content: <EmailLoginForm redirectTo={next} /> },
+          { id: "phone", label: "Mobile OTP", content: <PhoneOtpForm redirectTo={next} /> },
         ]}
       />
 

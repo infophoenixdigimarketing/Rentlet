@@ -181,11 +181,11 @@ export function RegisterWizard({ redirectTo = "/" }: { redirectTo?: string }) {
       <MethodTabs
         tabs={[
           {
-            id: "phone",
-            label: "Mobile OTP",
+            id: "email",
+            label: "Email",
             content:
               name.trim() && consentOk ? (
-                <PhoneOtpForm newUser={{ name, role: role!, email }} redirectTo={redirectTo} />
+                <EmailRegisterForm role={role!} name={name} email={email} redirectTo={redirectTo} />
               ) : (
                 <p className="text-xs text-muted-foreground">
                   {!name.trim() ? "Enter your name above to continue." : "Accept the terms above to continue."}
@@ -193,11 +193,11 @@ export function RegisterWizard({ redirectTo = "/" }: { redirectTo?: string }) {
               ),
           },
           {
-            id: "email",
-            label: "Email",
+            id: "phone",
+            label: "Mobile OTP",
             content:
               name.trim() && consentOk ? (
-                <EmailRegisterForm role={role!} name={name} email={email} redirectTo={redirectTo} />
+                <PhoneOtpForm newUser={{ name, role: role!, email }} redirectTo={redirectTo} />
               ) : (
                 <p className="text-xs text-muted-foreground">
                   {!name.trim() ? "Enter your name above to continue." : "Accept the terms above to continue."}
