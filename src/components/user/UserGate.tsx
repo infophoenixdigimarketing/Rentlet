@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { authService } from "@/lib/services/auth.service";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonVariants } from "@/components/ui/Button";
+import { EmailVerifyGate } from "@/components/auth/EmailVerifyGate";
 import { cn } from "@/lib/utils";
 
 const LISTER_ROLES = ["owner", "agent", "builder"];
@@ -44,6 +45,11 @@ export function UserGate({
         />
       </div>
     );
+  }
+
+  // Email/password accounts must confirm their address before anything gated is usable.
+  if (user.email && !user.emailVerified) {
+    return <EmailVerifyGate email={user.email} next={pathname ?? "/"} />;
   }
 
   if (blockListers && LISTER_ROLES.includes(user.role)) {

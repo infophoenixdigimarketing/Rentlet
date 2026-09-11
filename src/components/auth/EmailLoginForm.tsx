@@ -33,7 +33,8 @@ export function EmailLoginForm({ redirectTo = "/" }: { redirectTo?: string }) {
       const first = user.name.split(" ")[0] || "there";
       greet(`Welcome back, ${first}! Good to see you again.`);
       toast(`Welcome back, ${first}!`);
-      router.push(redirectTo);
+      // An email/password account that never confirmed goes to the confirmation screen first.
+      router.push(user.email && !user.emailVerified ? `/verify-email?next=${encodeURIComponent(redirectTo)}` : redirectTo);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {

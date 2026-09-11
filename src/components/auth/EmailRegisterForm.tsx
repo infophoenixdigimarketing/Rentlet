@@ -8,7 +8,7 @@ import { authService } from "@/lib/services/auth.service";
 import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { WELCOME_KEY } from "@/components/layout/WelcomeBanner";
 import { toast } from "@/lib/toast";
-import type { UserRole } from "@/types/user";
+import type { AuthUser, UserRole } from "@/types/user";
 
 function greet(text: string) {
   try {
@@ -16,6 +16,12 @@ function greet(text: string) {
   } catch {
     /* fall back to the toast */
   }
+}
+
+// An email/password account that hasn't confirmed yet gets routed to the confirmation
+// screen instead of straight through — phone/Google accounts never hit this (see AuthUser).
+function destinationFor(user: AuthUser, redirectTo: string): string {
+  return user.email && !user.emailVerified ? `/verify-email?next=${encodeURIComponent(redirectTo)}` : redirectTo;
 }
 
 export function EmailRegisterForm({
@@ -66,7 +72,7 @@ export function EmailRegisterForm({
           : `Welcome to Rentlet, ${first}! Your account is ready.`
       );
       toast(`Welcome to Rentlet, ${first}!`);
-      router.push(redirectTo);
+      router.push(destinationFor(user, redirectTo));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong.";
       // The register form is prefilled with a demo account for each intent — if that email
@@ -77,7 +83,7 @@ export function EmailRegisterForm({
           const first = user.name.split(" ")[0] || "there";
           greet(`Welcome back, ${first}! Good to see you again.`);
           toast(`Welcome back, ${first}!`);
-          router.push(redirectTo);
+          router.push(destinationFor(user, redirectTo));
           return;
         } catch (loginErr) {
           setError(loginErr instanceof Error ? loginErr.message : message);

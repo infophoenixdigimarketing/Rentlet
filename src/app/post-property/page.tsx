@@ -36,6 +36,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/Button";
+import { EmailVerifyGate } from "@/components/auth/EmailVerifyGate";
 import { useAuth } from "@/lib/auth";
 import { authService } from "@/lib/services/auth.service";
 import { submitProperty } from "@/lib/services/post-property.service";
@@ -57,6 +58,7 @@ export default function PostPropertyPage() {
   const { user } = useAuth();
   if (!user) return <PostPropertyLanding />;
   if (user.role === "tenant" || user.role === "buyer") return <ListerOnlyGate />;
+  if (user.email && !user.emailVerified) return <EmailVerifyGate email={user.email} next="/post-property" />;
   return <PostPropertyWizard key={user.id} user={user} />;
 }
 

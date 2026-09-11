@@ -57,6 +57,11 @@ export interface AuthProvider {
   requestPasswordReset(email: string): Promise<void>;
   logout(): Promise<void>;
   updateProfile(patch: Partial<Pick<AuthUser, "name" | "email" | "phone">>): Promise<AuthUser>;
+  /** Re-send the "confirm your email" link to the signed-in user's address. */
+  resendEmailVerification(): Promise<void>;
+  /** Re-check whether the signed-in user's email is now confirmed (also refreshes the cached
+   *  user so `emailVerified` is up to date). Returns the fresh value. */
+  refreshEmailVerified(): Promise<boolean>;
 }
 
 function isBrowser() {
@@ -120,6 +125,8 @@ function strip(user: StoredUser): AuthUser {
     phone: user.phone,
     role: user.role,
     isVerified: user.isVerified,
+    // Mock mode has no real email backend to confirm against — never block the demo on this.
+    emailVerified: true,
     createdAt: user.createdAt,
   };
 }
@@ -183,6 +190,7 @@ class MockAuthProvider implements AuthProvider {
         phone,
         role: newUser?.role ?? "tenant",
         isVerified: false,
+        emailVerified: true,
         createdAt: new Date().toISOString(),
         password: null,
       };
@@ -223,6 +231,7 @@ class MockAuthProvider implements AuthProvider {
       phone: null,
       role: input.role,
       isVerified: false,
+      emailVerified: true,
       createdAt: new Date().toISOString(),
       password: input.password,
     };
@@ -245,6 +254,7 @@ class MockAuthProvider implements AuthProvider {
         phone: null,
         role: newUserRole ?? "tenant",
         isVerified: true,
+        emailVerified: true,
         createdAt: new Date().toISOString(),
         password: null,
       };
@@ -291,6 +301,16 @@ class MockAuthProvider implements AuthProvider {
     const updated = strip(users[idx]);
     this.setSession(updated);
     return updated;
+  }
+
+  // Mock mode has no real email backend — nothing to send or re-check; every account reads
+  // as already verified (see strip()).
+  async resendEmailVerification(): Promise<void> {
+    await delay(300);
+  }
+
+  async refreshEmailVerified(): Promise<boolean> {
+    return true;
   }
 }
 
@@ -372,6 +392,8 @@ function firebaseUserToAuthUser(
     phone: extras.phoneOverride ?? firebaseUser.phoneNumber,
     role: extras.role,
     isVerified: extras.isVerified,
+    // No Auth email (phone-OTP account) => nothing to confirm, treat as verified.
+    emailVerified: firebaseUser.email ? firebaseUser.emailVerified : true,
     createdAt: extras.createdAt,
   };
 }
@@ -611,6 +633,27 @@ class FirebaseAuthProvider implements AuthProvider {
     this.current = user;
     this.listeners.forEach((l) => l(user));
     return user;
+  }
+
+  async resendEmailVerification(): Promise<void> {
+    const firebaseUser = getFirebaseAuth().currentUser;
+    if (!firebaseUser) throw new Error("Not signed in.");
+    if (!firebaseUser.email) throw new Error("This account has no email to verify.");
+    try {
+      await sendEmailVerification(firebaseUser);
+    } catch (e) {
+      throw new Error(friendlyAuthError(e));
+    }
+  }
+
+  async refreshEmailVerified(): Promise<boolean> {
+    const firebaseUser = getFirebaseAuth().currentUser;
+    if (!firebaseUser) return false;
+    await firebaseUser.reload();
+    const user = firebaseUserToAuthUser(firebaseUser);
+    this.current = user;
+    this.listeners.forEach((l) => l(user));
+    return user.emailVerified;
   }
 }
 
