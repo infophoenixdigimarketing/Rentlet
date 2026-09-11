@@ -105,6 +105,7 @@ export default async function PropertyDetailPage(props: PageProps<"/property/[sl
     <UserGate
       title="Login to view this property"
       description="Sign in to see full property details, photos and to contact a RENTLET agent."
+      blockListers
     >
     <div className="container-rentlet py-6 pb-28 sm:pb-10">
       <RecordView propertyId={property.id} />
