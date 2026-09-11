@@ -27,26 +27,28 @@ export function Hero() {
 
       <div className="container-rentlet relative pb-8 pt-4 sm:pb-10 sm:pt-5 lg:pb-10 lg:pt-6">
         {/* Primary CTAs — mobile only (lg:hidden). On desktop both already sit in the header;
-            here they cover the small screens where the header hides them behind the menu. */}
-        <div className="mb-4 flex animate-fade-up flex-wrap gap-2 lg:hidden">
+            here they cover the small screens where the header hides them behind the menu.
+            Kept compact (small text, tight padding) so they don't push the category photos
+            too far down the page. */}
+        <div className="mb-2.5 flex animate-fade-up flex-wrap gap-1.5 lg:hidden">
           <Link
             href="/post-property"
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-brand-navy shadow-lg shadow-black/25 transition-transform hover:-translate-y-0.5 sm:flex-none"
+            className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-brand-navy shadow-md shadow-black/20 transition-transform hover:-translate-y-0.5 sm:flex-none"
           >
-            <PlusCircle className="h-4 w-4 text-brand-orange" />
-            Post Your Property — Free
+            <PlusCircle className="h-3.5 w-3.5 shrink-0 text-brand-orange" />
+            Post Property — Free
           </Link>
           <Link
             href="/rental-agreement"
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/40 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-white/10 sm:flex-none"
+            className="inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-white/40 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-white/10 sm:flex-none"
           >
-            <FileText className="h-4 w-4" />
+            <FileText className="h-3.5 w-3.5 shrink-0" />
             Rent Agreement
           </Link>
         </div>
 
         {/* Rent / Sell / Lease quick links — mobile only, the header's top nav is hidden there */}
-        <div className="mb-4 flex animate-fade-up gap-2 lg:hidden">
+        <div className="mb-3 flex animate-fade-up gap-1.5 lg:hidden">
           {[
             { label: "Rent", href: "/properties?listingType=rent" },
             { label: "Sell", href: "/post-property" },
@@ -55,7 +57,7 @@ export function Hero() {
             <Link
               key={c.label}
               href={c.href}
-              className="flex-1 rounded-lg border border-white/25 bg-white/5 py-2 text-center text-xs font-bold text-white transition-colors hover:bg-white/15"
+              className="flex-1 rounded-lg border border-white/25 bg-white/5 py-1.5 text-center text-xs font-bold text-white transition-colors hover:bg-white/15"
             >
               {c.label}
             </Link>
