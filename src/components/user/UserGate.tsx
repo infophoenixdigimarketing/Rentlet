@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { authService } from "@/lib/services/auth.service";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonVariants } from "@/components/ui/Button";
+import { PageLoading } from "@/components/ui/PageLoading";
 import { EmailVerifyGate } from "@/components/auth/EmailVerifyGate";
 import { cn } from "@/lib/utils";
 
@@ -25,9 +26,13 @@ export function UserGate({
    *  "looking for property" account being unable to post on /post-property. */
   blockListers?: boolean;
 }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+
+  // Don't flash "please log in" for an already-signed-in visitor while Firebase confirms the
+  // session on refresh.
+  if (loading) return <PageLoading />;
 
   if (!user) {
     const next = pathname ? `?next=${encodeURIComponent(pathname)}` : "";

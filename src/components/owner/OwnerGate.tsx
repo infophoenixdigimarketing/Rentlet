@@ -5,12 +5,17 @@ import { Building2, LogIn } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonVariants } from "@/components/ui/Button";
+import { PageLoading } from "@/components/ui/PageLoading";
 import { cn } from "@/lib/utils";
 
 const OWNER_ROLES = ["owner", "agent", "builder"];
 
 export function OwnerGate({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  // Don't flash "please log in" for an already-signed-in owner while Firebase confirms the
+  // session on refresh.
+  if (loading) return <PageLoading />;
 
   if (!user) {
     return (

@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { BadgeCheck, Clock3 } from "lucide-react";
+import { BadgeCheck, Clock3, Camera } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { PropertyImage } from "@/components/ui/PropertyImage";
+import { Avatar } from "@/components/ui/Avatar";
 import { useAuth } from "@/lib/auth";
 import { authService } from "@/lib/services/auth.service";
+import { avatarService, useAvatar } from "@/lib/services/avatar.service";
 import { recentlyViewedService } from "@/lib/services/recently-viewed.service";
 import { propertyRepository } from "@/lib/services/properties.service";
 import { priceLabel } from "@/lib/utils";
@@ -22,6 +24,8 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [saving, setSaving] = useState(false);
   const [recent, setRecent] = useState<Property[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasPhoto = Boolean(useAvatar(user?.id ?? ""));
 
   useEffect(() => {
     if (!user) return;
@@ -32,7 +36,44 @@ export default function ProfilePage() {
   }, [user]);
 
   if (!user) return null;
-  const initials = user.name.split(" ").map((n) => n[0]).join("").slice(0, 2);
+
+  function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user) return;
+    if (!file.type.startsWith("image/")) {
+      toast("Please choose an image file", "error");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        // Downscale to a small square so the stored photo stays a few KB, regardless of the
+        // original file's size or aspect ratio.
+        const size = 240;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        const scale = Math.max(size / img.width, size / img.height);
+        const w = img.width * scale;
+        const h = img.height * scale;
+        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+        avatarService.set(user.id, canvas.toDataURL("image/jpeg", 0.85));
+        toast("Profile photo updated");
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removePhoto() {
+    if (!user) return;
+    avatarService.remove(user.id);
+  }
+
   // The phone (from OTP) and the email (from sign-up) are identity fields — shown, not editable
   // here, so a stray Save can't change or wipe them.
   const phoneLocked = Boolean(user.phone);
@@ -71,9 +112,18 @@ export default function ProfilePage() {
 
       <div className="mt-5 rounded-2xl border border-border bg-white p-6">
         <div className="flex items-center gap-4">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-navy-light text-xl font-bold text-brand-navy">
-            {initials}
-          </span>
+          <div className="relative h-16 w-16 shrink-0">
+            <Avatar userId={user.id} name={user.name} className="h-16 w-16 text-xl" />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Change profile photo"
+              className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-brand-orange text-white shadow ring-2 ring-white"
+            >
+              <Camera className="h-3.5 w-3.5" />
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onPickPhoto} />
+          </div>
           <div>
             <p className="flex items-center gap-1.5 text-base font-bold text-foreground">
               {user.name}
@@ -82,6 +132,11 @@ export default function ProfilePage() {
             <p className="text-sm capitalize text-muted-foreground">
               {user.role} · Member since {new Date(user.createdAt).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}
             </p>
+            {hasPhoto && (
+              <button type="button" onClick={removePhoto} className="mt-1 text-[11px] font-semibold text-red-600 hover:underline">
+                Remove photo
+              </button>
+            )}
           </div>
         </div>
 

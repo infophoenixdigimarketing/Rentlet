@@ -54,7 +54,7 @@ export function Gallery({ property }: { property: Property }) {
             ))}
           {tab === "video" &&
             (videoUrl ? (
-              <video src={videoUrl} controls className="h-full w-full bg-black object-contain" />
+              <video src={videoUrl} controls controlsList="nodownload" className="h-full w-full bg-black object-contain" />
             ) : (
               <div className="relative h-full w-full">
                 <PropertyImage id={`${property.id}-video`} propertyType={property.propertyType} className="h-full w-full" />

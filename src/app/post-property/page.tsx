@@ -36,6 +36,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/Button";
+import { PageLoading } from "@/components/ui/PageLoading";
 import { EmailVerifyGate } from "@/components/auth/EmailVerifyGate";
 import { useAuth } from "@/lib/auth";
 import { authService } from "@/lib/services/auth.service";
@@ -55,7 +56,9 @@ import type { AuthUser } from "@/types/user";
  *  browse but not post — it has to sign in with a lister account.
  * ------------------------------------------------------------------ */
 export default function PostPropertyPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  // Don't flash the OTP landing form while a real session is still being confirmed on refresh.
+  if (loading) return <PageLoading />;
   if (!user) return <PostPropertyLanding />;
   if (user.role === "tenant" || user.role === "buyer") return <ListerOnlyGate />;
   if (user.email && !user.emailVerified) return <EmailVerifyGate email={user.email} next="/post-property" />;
@@ -1010,6 +1013,12 @@ function readIntent(): Partial<PostIntent> {
 function PostPropertyWizard({ user }: { user: AuthUser }) {
   const [intent] = useState<Partial<PostIntent>>(() => readIntent());
   const [step, setStep] = useState(0);
+  // Each step renders fresh content at the top of the form — without this, advancing (or
+  // jumping back via the rail) leaves the scroll position wherever it was on the last step,
+  // so the next step can open off-screen until the user manually scrolls up.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [step]);
   const [form, setForm] = useState<FormState>(() => ({
     lookingTo: intent.adType === "Resale" ? "Sell" : "Rent",
     name: intent.name?.trim() ?? "",
@@ -1940,6 +1949,7 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
                         <video
                           src={form.video.url}
                           controls
+                          controlsList="nodownload"
                           playsInline
                           className="max-h-64 w-full rounded-lg border border-border bg-black"
                         />

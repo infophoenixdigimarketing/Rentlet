@@ -44,6 +44,11 @@ export const GOOGLE_DEMO_ACCOUNTS: GoogleDemoAccount[] = [
 
 export interface AuthProvider {
   getCurrentUser(): AuthUser | null;
+  /** True once the session has actually been checked — the Firebase provider needs a tick
+   *  after page load before it knows whether there's a signed-in user. Gated pages should show
+   *  a neutral loading state (not "please log in") until this is true, or a refresh flashes the
+   *  logged-out screen before flipping to the real one. Always true for the mock provider. */
+  isAuthReady(): boolean;
   subscribe(listener: (user: AuthUser | null) => void): () => void;
   sendOtp(phone: string): Promise<void>;
   verifyOtp(phone: string, code: string, newUser?: { name: string; role: UserRole; email?: string }): Promise<AuthUser>;
@@ -151,6 +156,12 @@ class MockAuthProvider implements AuthProvider {
       this.hydrated = true;
     }
     return this.current;
+  }
+
+  // Mock mode hydrates synchronously from localStorage the moment it's first asked — there's
+  // no async gap, so gated pages never need to show a loading state for it.
+  isAuthReady(): boolean {
+    return true;
   }
 
   subscribe(listener: (user: AuthUser | null) => void) {
@@ -470,6 +481,9 @@ function friendlyAuthError(err: unknown): string {
 class FirebaseAuthProvider implements AuthProvider {
   private listeners: ((user: AuthUser | null) => void)[] = [];
   private current: AuthUser | null = null;
+  // Firebase needs a tick after page load to restore (or confirm there's no) session — false
+  // until the first onAuthStateChanged callback, real or empty.
+  private ready = false;
   private confirmationResult: ConfirmationResult | null = null;
   private recaptcha: RecaptchaVerifier | null = null;
 
@@ -477,12 +491,17 @@ class FirebaseAuthProvider implements AuthProvider {
     if (typeof window === "undefined") return; // never runs during SSR/RSC
     onAuthStateChanged(getFirebaseAuth(), (firebaseUser) => {
       this.current = firebaseUser ? firebaseUserToAuthUser(firebaseUser) : null;
+      this.ready = true;
       this.listeners.forEach((l) => l(this.current));
     });
   }
 
   getCurrentUser(): AuthUser | null {
     return this.current;
+  }
+
+  isAuthReady(): boolean {
+    return this.ready;
   }
 
   subscribe(listener: (user: AuthUser | null) => void) {
@@ -538,6 +557,7 @@ class FirebaseAuthProvider implements AuthProvider {
       const credential = await this.confirmationResult.confirm(code);
       const user = firebaseUserToAuthUser(credential.user, newUser);
       this.current = user;
+      this.ready = true;
       return user;
     } catch (e) {
       throw new Error(friendlyAuthError(e));
@@ -549,6 +569,7 @@ class FirebaseAuthProvider implements AuthProvider {
       const credential = await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
       const user = firebaseUserToAuthUser(credential.user);
       this.current = user;
+      this.ready = true;
       return user;
     } catch (e) {
       throw new Error(friendlyAuthError(e));
@@ -564,6 +585,7 @@ class FirebaseAuthProvider implements AuthProvider {
       await sendEmailVerification(credential.user).catch(() => {});
       const user = firebaseUserToAuthUser(credential.user, { name: input.name, role: input.role });
       this.current = user;
+      this.ready = true;
       return user;
     } catch (e) {
       throw new Error(friendlyAuthError(e));
@@ -577,6 +599,7 @@ class FirebaseAuthProvider implements AuthProvider {
       const credential = await signInWithPopup(getFirebaseAuth(), new GoogleAuthProvider());
       const user = firebaseUserToAuthUser(credential.user, newUserRole ? { role: newUserRole } : undefined);
       this.current = user;
+      this.ready = true;
       return user;
     } catch (e) {
       throw new Error(friendlyAuthError(e));
@@ -631,6 +654,7 @@ class FirebaseAuthProvider implements AuthProvider {
 
     const user = firebaseUserToAuthUser(firebaseUser);
     this.current = user;
+    this.ready = true;
     this.listeners.forEach((l) => l(user));
     return user;
   }
@@ -652,6 +676,7 @@ class FirebaseAuthProvider implements AuthProvider {
     await firebaseUser.reload();
     const user = firebaseUserToAuthUser(firebaseUser);
     this.current = user;
+    this.ready = true;
     this.listeners.forEach((l) => l(user));
     return user.emailVerified;
   }

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, Heart, Bookmark, CalendarClock, LayoutDashboard, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { authService } from "@/lib/services/auth.service";
+import { Avatar } from "@/components/ui/Avatar";
 import { toast } from "@/lib/toast";
 
 export function UserMenu() {
@@ -25,7 +26,6 @@ export function UserMenu() {
 
   if (!user) return null;
 
-  const initials = user.name.split(" ").map((n) => n[0]).join("").slice(0, 2);
   const links = [
     { href: "/favorites", label: "Favorites", icon: Heart },
     { href: "/saved-searches", label: "Saved Searches", icon: Bookmark },
@@ -50,9 +50,7 @@ export function UserMenu() {
         aria-expanded={open}
         className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 hover:bg-muted"
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-navy-light text-xs font-bold text-brand-navy">
-          {initials}
-        </span>
+        <Avatar userId={user.id} name={user.name} className="h-8 w-8 text-xs" />
         <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 

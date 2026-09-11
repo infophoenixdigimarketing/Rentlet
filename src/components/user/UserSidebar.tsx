@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { UserRound, Heart, Bookmark, CalendarClock, Bell, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { authService } from "@/lib/services/auth.service";
+import { Avatar } from "@/components/ui/Avatar";
 import { toast } from "@/lib/toast";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 
@@ -20,8 +21,6 @@ export function UserSidebar() {
   const router = useRouter();
   if (!user) return null;
 
-  const initials = user.name.split(" ").map((n) => n[0]).join("").slice(0, 2);
-
   async function logout() {
     await authService.logout();
     toast("Logged out");
@@ -31,9 +30,7 @@ export function UserSidebar() {
   return (
     <div className="lg:w-56 lg:shrink-0">
       <div className="mb-2 hidden items-center gap-3 rounded-xl bg-white px-3.5 py-3 lg:flex">
-        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-navy-light text-sm font-bold text-brand-navy">
-          {initials}
-        </span>
+        <Avatar userId={user.id} name={user.name} className="h-10 w-10 text-sm" />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-foreground">{user.name}</p>
           <p className="text-xs capitalize text-muted-foreground">{user.role}</p>
