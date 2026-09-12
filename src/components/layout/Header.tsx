@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Menu, X, UserCircle2, ChevronDown, Check, Globe, KeyRound, IndianRupee, Tag, FileSignature, PlusCircle, ScrollText, LogOut, type LucideIcon } from "lucide-react";
+import { Menu, X, Bell, UserCircle2, ChevronDown, Check, Globe, KeyRound, IndianRupee, Tag, FileSignature, PlusCircle, ScrollText, LogOut, type LucideIcon } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { buttonVariants } from "@/components/ui/Button";
 import { UserMenu } from "@/components/layout/UserMenu";
@@ -172,6 +172,9 @@ export function Header() {
             </>
           ) : (
             <>
+              <Link href="/login" aria-label="Notifications" className="rounded-full p-2 text-foreground/80 hover:bg-muted">
+                <Bell className="h-5 w-5" />
+              </Link>
               <Link href="/login" className="rounded-full border border-border px-2.5 py-1.5 text-xs font-bold text-foreground/85 hover:bg-muted">
                 Login
               </Link>
