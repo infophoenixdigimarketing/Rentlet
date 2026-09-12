@@ -55,18 +55,17 @@ export function isFirebaseConfigured(): boolean {
 /** VAPID key for FCM web push — from Firebase Console → Cloud Messaging → Web Push certificates. */
 export const fcmVapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 
-// By explicit product decision, Firebase is wired up for website login (Firebase Authentication,
-// in auth.service.ts) only. Firestore — the database behind properties, favorites, saved
-// searches, leads, visits, chat, notifications, and the admin console — stays on each service's
-// mock/local implementation for now, even when isFirebaseConfigured() is true. Every
-// Firestore-backed service already has a real FirebaseXService implementation written and ready
-// (see lib/services/*.ts); flip this to `isFirebaseConfigured()` when Firestore should go live —
-// no other code changes needed.
+// Firestore is now live — properties, favorites, saved searches, leads and visits all read/write
+// the real `rentlet-prod` database (see firestore.rules, deployed). chat_rooms/messages/
+// notifications/reports/reviews/subscriptions/payments/property_views/verification_requests/
+// audit_logs stay on mock data for now — add their rules in the same turn their service is
+// switched over.
 //
-// Kept OFF: the admin/staff consoles sign in with a local demo session (admin-auth.service.ts),
-// not a real Firebase user, so the owner/requester-scoped Firestore queries the dashboards run
-// come back empty for them. Until the consoles are wired to real Firebase admin accounts +
-// security rules, the dashboards run on seeded demo data while Firebase Auth stays real.
+// The admin/staff console still falls back to a local demo session (admin-auth.service.ts) unless
+// signed in with a real Firebase account that also has an admin_users/{uid} Firestore doc — see
+// that file's FirebaseAdminAuthService. Until an admin_users doc exists for a real account, use
+// the demo login only to look around; approve/reject actions need a real admin account because
+// Firestore's security rules require an actual signed-in Firebase user to match isAdmin().
 export function isFirestoreEnabled(): boolean {
-  return false;
+  return isFirebaseConfigured();
 }

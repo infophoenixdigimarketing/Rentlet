@@ -3,8 +3,12 @@
 // Algolia/Elasticsearch/OpenSearch behind the same interface, with zero change to
 // FilterPanel/PropertiesView, which only ever call `searchProvider.search(filters)`.
 
+import { collection, getDocs, query, where } from "firebase/firestore";
 import type { Property, PropertyType, Furnishing } from "@/types/property";
 import { allProperties } from "@/lib/data/seed-properties";
+import { isFirestoreEnabled } from "@/lib/firebase/config";
+import { getDb } from "@/lib/firebase/client";
+import { mapPropertyDoc, PROPERTIES_COLLECTION } from "@/lib/services/properties.service";
 
 export type SortOption = "relevance" | "newest" | "price_asc" | "price_desc" | "nearest";
 
@@ -105,72 +109,97 @@ function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number): nu
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
+/** Shared by both providers — everything past "already-discoverable listings, unfiltered" is
+ *  plain in-memory filter/sort, since Firestore has no native support for this query shape
+ *  (multiple range filters + several sort orders) without an external index (a later phase). */
+function filterAndSort(candidates: Property[], filters: SearchFilters): Property[] {
+  let items = candidates;
+
+  if (filters.city) items = items.filter((p) => p.city.toLowerCase() === filters.city!.toLowerCase());
+  if (filters.listingType) items = items.filter((p) => p.listingType === filters.listingType);
+  if (filters.propertyTypes?.length) items = items.filter((p) => filters.propertyTypes!.includes(p.propertyType));
+  if (filters.minPrice != null) items = items.filter((p) => priceOf(p) >= filters.minPrice!);
+  if (filters.maxPrice != null) items = items.filter((p) => priceOf(p) <= filters.maxPrice!);
+  if (filters.minArea != null) items = items.filter((p) => (p.builtUpArea ?? 0) >= filters.minArea!);
+  if (filters.maxArea != null) items = items.filter((p) => (p.builtUpArea ?? 0) <= filters.maxArea!);
+  if (filters.gender === "male" || filters.gender === "female") {
+    items = items.filter((p) => p.genderPreference === filters.gender || p.genderPreference === "any");
+  }
+  if (filters.bedrooms?.length) {
+    items = items.filter((p) => {
+      if (p.bedrooms == null) return false;
+      return filters.bedrooms!.some((b) => (b >= 5 ? p.bedrooms! >= 5 : p.bedrooms === b));
+    });
+  }
+  if (filters.furnishing?.length) items = items.filter((p) => p.furnishing && filters.furnishing!.includes(p.furnishing));
+  if (filters.amenities?.length) items = items.filter((p) => filters.amenities!.every((a) => p.amenities.includes(a)));
+  if (filters.postedBy?.length) items = items.filter((p) => filters.postedBy!.includes(p.postedBy));
+  if (filters.verifiedOnly) items = items.filter((p) => p.verificationStatus === "approved");
+  if (filters.noBrokerage) items = items.filter((p) => p.noBrokerage);
+  if (filters.petFriendly) items = items.filter((p) => p.amenities.includes("pet_friendly"));
+  if (filters.featuredOnly) items = items.filter((p) => p.featured);
+
+  // Reference point for "nearest" ordering: explicit coords (browser geolocation) win,
+  // otherwise the centroid of the chosen "near" locality. If neither resolves, "nearest"
+  // gracefully degrades to relevance.
+  const refPoint =
+    filters.nearLat != null && filters.nearLng != null
+      ? { lat: filters.nearLat, lng: filters.nearLng }
+      : filters.near
+        ? localityPoint(filters.near, filters.city)
+        : null;
+
+  // A "near" reference with no explicit sort choice auto-selects "nearest" (the requested
+  // automatic behaviour); an explicit price/newest choice is always respected.
+  const sort: SortOption = filters.sort ?? (refPoint ? "nearest" : "relevance");
+  const relevance = (a: Property, b: Property) => Number(b.featured) - Number(a.featured) || b.views - a.views;
+
+  return [...items].sort((a, b) => {
+    switch (sort) {
+      case "newest":
+        return b.createdAt.localeCompare(a.createdAt);
+      case "price_asc":
+        return priceOf(a) - priceOf(b);
+      case "price_desc":
+        return priceOf(b) - priceOf(a);
+      case "nearest":
+        if (!refPoint) return relevance(a, b);
+        return (
+          haversineKm(refPoint.lat, refPoint.lng, a.latitude, a.longitude) -
+            haversineKm(refPoint.lat, refPoint.lng, b.latitude, b.longitude) || relevance(a, b)
+        );
+      default:
+        return relevance(a, b);
+    }
+  });
+}
+
 class MockSearchProvider implements SearchProvider {
   async search(filters: SearchFilters): Promise<SearchResult> {
     // Only admin-verified listings are discoverable. A freshly posted property stays
     // invisible to house-seekers until an admin approves it (spec §25).
-    let items = allProperties.filter((p) => p.status === "active" && p.verificationStatus === "approved");
-
-    if (filters.city) items = items.filter((p) => p.city.toLowerCase() === filters.city!.toLowerCase());
-    if (filters.listingType) items = items.filter((p) => p.listingType === filters.listingType);
-    if (filters.propertyTypes?.length) items = items.filter((p) => filters.propertyTypes!.includes(p.propertyType));
-    if (filters.minPrice != null) items = items.filter((p) => priceOf(p) >= filters.minPrice!);
-    if (filters.maxPrice != null) items = items.filter((p) => priceOf(p) <= filters.maxPrice!);
-    if (filters.minArea != null) items = items.filter((p) => (p.builtUpArea ?? 0) >= filters.minArea!);
-    if (filters.maxArea != null) items = items.filter((p) => (p.builtUpArea ?? 0) <= filters.maxArea!);
-    if (filters.gender === "male" || filters.gender === "female") {
-      items = items.filter((p) => p.genderPreference === filters.gender || p.genderPreference === "any");
-    }
-    if (filters.bedrooms?.length) {
-      items = items.filter((p) => {
-        if (p.bedrooms == null) return false;
-        return filters.bedrooms!.some((b) => (b >= 5 ? p.bedrooms! >= 5 : p.bedrooms === b));
-      });
-    }
-    if (filters.furnishing?.length) items = items.filter((p) => p.furnishing && filters.furnishing!.includes(p.furnishing));
-    if (filters.amenities?.length) items = items.filter((p) => filters.amenities!.every((a) => p.amenities.includes(a)));
-    if (filters.postedBy?.length) items = items.filter((p) => filters.postedBy!.includes(p.postedBy));
-    if (filters.verifiedOnly) items = items.filter((p) => p.verificationStatus === "approved");
-    if (filters.noBrokerage) items = items.filter((p) => p.noBrokerage);
-    if (filters.petFriendly) items = items.filter((p) => p.amenities.includes("pet_friendly"));
-    if (filters.featuredOnly) items = items.filter((p) => p.featured);
-
-    // Reference point for "nearest" ordering: explicit coords (browser geolocation) win,
-    // otherwise the centroid of the chosen "near" locality. If neither resolves, "nearest"
-    // gracefully degrades to relevance.
-    const refPoint =
-      filters.nearLat != null && filters.nearLng != null
-        ? { lat: filters.nearLat, lng: filters.nearLng }
-        : filters.near
-          ? localityPoint(filters.near, filters.city)
-          : null;
-
-    // A "near" reference with no explicit sort choice auto-selects "nearest" (the requested
-    // automatic behaviour); an explicit price/newest choice is always respected.
-    const sort: SortOption = filters.sort ?? (refPoint ? "nearest" : "relevance");
-    const relevance = (a: Property, b: Property) => Number(b.featured) - Number(a.featured) || b.views - a.views;
-
-    items = [...items].sort((a, b) => {
-      switch (sort) {
-        case "newest":
-          return b.createdAt.localeCompare(a.createdAt);
-        case "price_asc":
-          return priceOf(a) - priceOf(b);
-        case "price_desc":
-          return priceOf(b) - priceOf(a);
-        case "nearest":
-          if (!refPoint) return relevance(a, b);
-          return (
-            haversineKm(refPoint.lat, refPoint.lng, a.latitude, a.longitude) -
-              haversineKm(refPoint.lat, refPoint.lng, b.latitude, b.longitude) || relevance(a, b)
-          );
-        default:
-          return relevance(a, b);
-      }
-    });
-
+    const discoverable = allProperties.filter((p) => p.status === "active" && p.verificationStatus === "approved");
+    const items = filterAndSort(discoverable, filters);
     return { items, total: items.length };
   }
 }
 
-export const searchProvider: SearchProvider = new MockSearchProvider();
+// Firestore has no native support for this query shape (several range filters + multiple sort
+// orders) without an external index (a later phase, per the file header) — so this fetches every
+// discoverable listing once and reuses the exact same in-memory filter/sort as the mock provider.
+class FirebaseSearchProvider implements SearchProvider {
+  async search(filters: SearchFilters): Promise<SearchResult> {
+    const snap = await getDocs(
+      query(
+        collection(getDb(), PROPERTIES_COLLECTION),
+        where("status", "==", "active"),
+        where("verificationStatus", "==", "approved")
+      )
+    );
+    const discoverable = snap.docs.map((d) => mapPropertyDoc(d.id, d.data()));
+    const items = filterAndSort(discoverable, filters);
+    return { items, total: items.length };
+  }
+}
+
+export const searchProvider: SearchProvider = isFirestoreEnabled() ? new FirebaseSearchProvider() : new MockSearchProvider();
