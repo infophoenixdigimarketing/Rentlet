@@ -92,7 +92,7 @@ export function Hero() {
             <Link
               key={label}
               href={href}
-              className="group relative flex h-36 flex-col justify-end overflow-hidden rounded-2xl shadow-xl transition-transform duration-300 hover:-translate-y-1 sm:h-44 lg:h-52"
+              className="group relative flex h-24 flex-col justify-end overflow-hidden rounded-2xl shadow-xl transition-transform duration-300 hover:-translate-y-1 sm:h-44 lg:h-52"
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
               <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
