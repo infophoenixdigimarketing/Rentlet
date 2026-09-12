@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { authService } from "@/lib/services/auth.service";
 import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { WELCOME_KEY } from "@/components/layout/WelcomeBanner";
+import { notifyLogin } from "@/lib/notify-login";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { UserRole } from "@/types/user";
@@ -109,6 +110,7 @@ export function PhoneOtpForm({
         /* fall back to the toast */
       }
       toast(`Welcome${newUser ? " to Rentlet" : " back"}, ${first}!`);
+      notifyLogin({ email: user.email, name: first, isNewAccount: Boolean(newUser) });
       router.push(redirectTo);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");

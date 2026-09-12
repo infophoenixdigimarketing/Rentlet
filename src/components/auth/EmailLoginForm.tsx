@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { authService } from "@/lib/services/auth.service";
 import { WELCOME_KEY } from "@/components/layout/WelcomeBanner";
+import { notifyLogin } from "@/lib/notify-login";
 import { toast } from "@/lib/toast";
 
 function greet(text: string) {
@@ -33,6 +34,7 @@ export function EmailLoginForm({ redirectTo = "/" }: { redirectTo?: string }) {
       const first = user.name.split(" ")[0] || "there";
       greet(`Welcome back, ${first}! Good to see you again.`);
       toast(`Welcome back, ${first}!`);
+      notifyLogin({ email: user.email, name: first });
       // An email/password account that never confirmed goes to the confirmation screen first.
       router.push(user.email && !user.emailVerified ? `/verify-email?next=${encodeURIComponent(redirectTo)}` : redirectTo);
     } catch (err) {

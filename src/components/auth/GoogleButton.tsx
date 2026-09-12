@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/lib/services/auth.service";
 import { WELCOME_KEY } from "@/components/layout/WelcomeBanner";
+import { notifyLogin } from "@/lib/notify-login";
 import { toast } from "@/lib/toast";
 import type { UserRole } from "@/types/user";
 
@@ -29,6 +30,7 @@ export function GoogleButton({
         /* fall back to the toast */
       }
       toast(`Welcome, ${first}!`);
+      notifyLogin({ email: user.email, name: first, isNewAccount: Boolean(role) });
       router.push(redirectTo);
     } catch (err) {
       toast(err instanceof Error ? err.message : "Google sign-in failed. Try again.", "error");
