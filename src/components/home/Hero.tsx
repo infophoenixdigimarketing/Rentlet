@@ -92,13 +92,13 @@ export function Hero() {
             <Link
               key={label}
               href={href}
-              className="group relative flex h-24 flex-col justify-end overflow-hidden rounded-2xl shadow-xl transition-transform duration-300 hover:-translate-y-1 sm:h-44 lg:h-52"
+              className="group relative flex h-32 flex-col justify-end overflow-hidden rounded-2xl shadow-xl transition-transform duration-300 hover:-translate-y-1 sm:h-44 lg:h-52"
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- local /public asset */}
               <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
               <div className="absolute inset-0 bg-gradient-to-t from-brand-navy-dark/95 via-brand-navy-dark/25 to-transparent" />
-              <span className="relative m-2.5 inline-flex w-fit items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[11px] font-bold tracking-wide text-brand-navy shadow-md sm:text-xs">
-                <Icon className="h-3.5 w-3.5 text-brand-orange" /> {label}
+              <span className="relative m-2 inline-flex w-fit items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[9px] font-bold tracking-wide text-brand-navy shadow-md sm:m-2.5 sm:gap-1.5 sm:px-2.5 sm:py-1 sm:text-xs">
+                <Icon className="h-3 w-3 text-brand-orange sm:h-3.5 sm:w-3.5" /> {label}
               </span>
             </Link>
           ))}
