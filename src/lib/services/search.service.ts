@@ -8,7 +8,7 @@ import type { Property, PropertyType, Furnishing } from "@/types/property";
 import { allProperties } from "@/lib/data/seed-properties";
 import { isFirestoreEnabled } from "@/lib/firebase/config";
 import { getDb } from "@/lib/firebase/client";
-import { mapPropertyDoc, PROPERTIES_COLLECTION } from "@/lib/services/properties.service";
+import { PROPERTIES_COLLECTION, mapPropertyDoc } from "@/lib/firebase/properties-shared";
 
 export type SortOption = "relevance" | "newest" | "price_asc" | "price_desc" | "nearest";
 

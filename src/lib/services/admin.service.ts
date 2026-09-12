@@ -12,7 +12,7 @@ import { collection, doc, onSnapshot, orderBy, query, updateDoc } from "firebase
 import { allProperties } from "@/lib/data/seed-properties";
 import { isFirestoreEnabled } from "@/lib/firebase/config";
 import { getDb } from "@/lib/firebase/client";
-import { mapPropertyDoc, PROPERTIES_COLLECTION } from "@/lib/services/properties.service";
+import { PROPERTIES_COLLECTION, mapPropertyDoc } from "@/lib/firebase/properties-shared";
 import type { Property, PropertyStatus, VerificationStatus } from "@/types/property";
 
 export interface AdminPropertiesService {

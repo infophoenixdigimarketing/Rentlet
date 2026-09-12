@@ -22,7 +22,10 @@ import { allProperties } from "@/lib/data/seed-properties";
 import { adminPropertiesService } from "@/lib/services/admin.service";
 import { isFirestoreEnabled } from "@/lib/firebase/config";
 import { getDb } from "@/lib/firebase/client";
-import { toIso, mapSnapshot, mapDoc, stripUndefined } from "@/lib/firebase/firestore-helpers";
+import { mapSnapshot, mapDoc, stripUndefined } from "@/lib/firebase/firestore-helpers";
+import { PROPERTIES_COLLECTION, mapPropertyDoc } from "@/lib/firebase/properties-shared";
+
+export { PROPERTIES_COLLECTION, mapPropertyDoc };
 
 export interface PropertyRepository {
   getFeatured(limit?: number): Promise<Property[]>;
@@ -92,7 +95,6 @@ class MockPropertyRepository implements PropertyRepository {
 // caller already threads `property.id` around as the join key for favorites/leads/visits/chat).
 // ---------------------------------------------------------------------------------------------
 
-export const PROPERTIES_COLLECTION = "properties";
 const COLLECTION = PROPERTIES_COLLECTION;
 
 function propertiesCol() {
@@ -103,14 +105,6 @@ function propertyDoc(id: string) {
   return doc(getDb(), COLLECTION, id);
 }
 
-/** Shared by owner.service.ts and admin.service.ts's ownerId/all-properties Firestore listeners. */
-export function mapPropertyDoc(id: string, data: Record<string, unknown>): Property {
-  return {
-    ...(data as Omit<Property, "id" | "createdAt">),
-    id,
-    createdAt: toIso(data.createdAt) ?? new Date().toISOString(),
-  } as Property;
-}
 const toProperty = mapPropertyDoc;
 
 class FirebasePropertyRepository implements PropertyRepository {
