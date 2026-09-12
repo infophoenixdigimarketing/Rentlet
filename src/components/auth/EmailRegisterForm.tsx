@@ -75,9 +75,12 @@ export function EmailRegisterForm({
       router.push(destinationFor(user, redirectTo));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong.";
-      // The register form is prefilled with a demo account for each intent — if that email
-      // already exists, treat submit as a sign-in instead of erroring.
-      if (/already exists/i.test(message)) {
+      // Mock mode only: the register form is prefilled with a demo account (fixed password) for
+      // each intent, so if that email already exists, retrying as a sign-in always succeeds and
+      // feels seamless. With real Firebase accounts the typed password is the user's own guess,
+      // not a known demo one — silently attempting to log in with it just turns "this email is
+      // already registered" into a confusing "incorrect password" when it (almost always) fails.
+      if (!isFirebaseConfigured() && /already exists/i.test(message)) {
         try {
           const user = await authService.loginWithEmail(effectiveEmail, password);
           const first = user.name.split(" ")[0] || "there";
