@@ -323,6 +323,18 @@ export function Header() {
             </Link>
           </div>
 
+          {!user && (
+            <div className="mt-2 px-1">
+              <Link
+                href="/register"
+                onClick={() => setOpen(false)}
+                className={cn(buttonVariants({ variant: "primary", size: "md" }), "block w-full text-center")}
+              >
+                Sign Up
+              </Link>
+            </div>
+          )}
+
           {user && (
             <button
               type="button"
