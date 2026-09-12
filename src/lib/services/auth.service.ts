@@ -11,7 +11,6 @@ import {
   GoogleAuthProvider,
   signOut,
   sendPasswordResetEmail,
-  sendEmailVerification,
   updateProfile as updateFirebaseDisplayName,
   updateEmail as updateFirebaseEmail,
   RecaptchaVerifier,
@@ -62,8 +61,12 @@ export interface AuthProvider {
   requestPasswordReset(email: string): Promise<void>;
   logout(): Promise<void>;
   updateProfile(patch: Partial<Pick<AuthUser, "name" | "email" | "phone">>): Promise<AuthUser>;
-  /** Re-send the "confirm your email" link to the signed-in user's address. */
+  /** Email a fresh 6-digit verification code to the signed-in user's address. */
   resendEmailVerification(): Promise<void>;
+  /** Check the code the user typed against the one just emailed to them. On success, marks the
+   *  account verified and refreshes the cached user so `emailVerified` is up to date. Throws
+   *  with a plain-English message (wrong code, expired, too many attempts) on failure. */
+  verifyEmailOtp(code: string): Promise<boolean>;
   /** Re-check whether the signed-in user's email is now confirmed (also refreshes the cached
    *  user so `emailVerified` is up to date). Returns the fresh value. */
   refreshEmailVerified(): Promise<boolean>;
@@ -320,6 +323,11 @@ class MockAuthProvider implements AuthProvider {
     await delay(300);
   }
 
+  async verifyEmailOtp(): Promise<boolean> {
+    await delay(300);
+    return true;
+  }
+
   async refreshEmailVerified(): Promise<boolean> {
     return true;
   }
@@ -478,6 +486,21 @@ function friendlyAuthError(err: unknown): string {
   }
 }
 
+// Firebase Auth's own email verification is link-only (no client-SDK way to turn that into a
+// typed code), so this is a small custom OTP system backed by the Admin SDK on the server side —
+// see api/auth/send-email-otp and api/auth/verify-email-otp.
+async function sendEmailOtpRequest(firebaseUser: FirebaseUser): Promise<void> {
+  const idToken = await firebaseUser.getIdToken();
+  const res = await fetch("/api/auth/send-email-otp", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}) as { error?: string });
+    throw new Error(body.error || "Couldn't send the verification code.");
+  }
+}
+
 class FirebaseAuthProvider implements AuthProvider {
   private listeners: ((user: AuthUser | null) => void)[] = [];
   private current: AuthUser | null = null;
@@ -580,9 +603,10 @@ class FirebaseAuthProvider implements AuthProvider {
     try {
       const credential = await createUserWithEmailAndPassword(getFirebaseAuth(), input.email, input.password);
       await updateFirebaseDisplayName(credential.user, { displayName: input.name });
-      // Send the "confirm your email" link. Best-effort: a failure here (rate limit, etc.)
-      // must not block an otherwise-successful signup.
-      await sendEmailVerification(credential.user).catch(() => {});
+      // Email the 6-digit verification code. Best-effort: a failure here (rate limit, mail
+      // server hiccup, etc.) must not block an otherwise-successful signup — EmailVerifyGate's
+      // "Resend code" covers a failed first send.
+      await sendEmailOtpRequest(credential.user).catch(() => {});
       const user = firebaseUserToAuthUser(credential.user, { name: input.name, role: input.role });
       this.current = user;
       this.ready = true;
@@ -663,11 +687,27 @@ class FirebaseAuthProvider implements AuthProvider {
     const firebaseUser = getFirebaseAuth().currentUser;
     if (!firebaseUser) throw new Error("Not signed in.");
     if (!firebaseUser.email) throw new Error("This account has no email to verify.");
-    try {
-      await sendEmailVerification(firebaseUser);
-    } catch (e) {
-      throw new Error(friendlyAuthError(e));
-    }
+    await sendEmailOtpRequest(firebaseUser);
+  }
+
+  async verifyEmailOtp(code: string): Promise<boolean> {
+    const firebaseUser = getFirebaseAuth().currentUser;
+    if (!firebaseUser) throw new Error("Not signed in.");
+    const idToken = await firebaseUser.getIdToken();
+    const res = await fetch("/api/auth/verify-email-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ code }),
+    });
+    const body = await res.json().catch(() => ({}) as { error?: string });
+    if (!res.ok) throw new Error(body.error || "Couldn't verify that code.");
+    // The Admin SDK just flipped emailVerified server-side — reload to pick it up here too.
+    await firebaseUser.reload();
+    const user = firebaseUserToAuthUser(firebaseUser);
+    this.current = user;
+    this.ready = true;
+    this.listeners.forEach((l) => l(user));
+    return user.emailVerified;
   }
 
   async refreshEmailVerified(): Promise<boolean> {
