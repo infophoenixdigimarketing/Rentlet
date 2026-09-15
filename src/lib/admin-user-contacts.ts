@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase/client";
 
 export interface UserContact {
@@ -22,31 +23,41 @@ export function useAdminUserContacts(uids: (string | null | undefined)[]): Recor
   useEffect(() => {
     if (missing.length === 0) return;
     missing.forEach((u) => inFlight.add(u));
-    const firebaseUser = getFirebaseAuth().currentUser;
-    if (!firebaseUser) {
-      missing.forEach((u) => inFlight.delete(u));
-      return;
-    }
     let cancelled = false;
-    firebaseUser
-      .getIdToken()
-      .then((idToken) =>
-        fetch("/api/admin/user-contact", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
-          body: JSON.stringify({ uids: missing }),
+
+    // getFirebaseAuth().currentUser can still be null here even when genuinely signed in — the
+    // SDK hasn't finished restoring the session yet right after page load/navigation, and that
+    // check would then never retry (this effect's deps don't change again once `missing` is
+    // stable). onAuthStateChanged always fires once with the real, resolved state instead.
+    const unsubscribe = onAuthStateChanged(getFirebaseAuth(), (firebaseUser) => {
+      unsubscribe();
+      if (cancelled) return;
+      if (!firebaseUser) {
+        missing.forEach((u) => inFlight.delete(u));
+        return;
+      }
+      firebaseUser
+        .getIdToken()
+        .then((idToken) =>
+          fetch("/api/admin/user-contact", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+            body: JSON.stringify({ uids: missing }),
+          })
+        )
+        .then((res) => res.json())
+        .then((body: { users?: Record<string, UserContact> }) => {
+          if (cancelled) return;
+          for (const [uid, contact] of Object.entries(body.users ?? {})) cache.set(uid, contact);
+          forceRender((n) => n + 1);
         })
-      )
-      .then((res) => res.json())
-      .then((body: { users?: Record<string, UserContact> }) => {
-        if (cancelled) return;
-        for (const [uid, contact] of Object.entries(body.users ?? {})) cache.set(uid, contact);
-        forceRender((n) => n + 1);
-      })
-      .catch(() => {})
-      .finally(() => missing.forEach((u) => inFlight.delete(u)));
+        .catch(() => {})
+        .finally(() => missing.forEach((u) => inFlight.delete(u)));
+    });
+
     return () => {
       cancelled = true;
+      unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only when the actual uid set changes
   }, [missing.join(",")]);
