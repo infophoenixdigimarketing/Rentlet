@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarClock, Check, X, Users, CheckCheck, Phone } from "lucide-react";
+import { CalendarClock, Check, X, Users, CheckCheck, Phone, Mail } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useAdminVisits } from "@/lib/dashboard-hooks";
 import { adminVisitsService } from "@/lib/services/admin-visits.service";
+import { useAdminUserContacts } from "@/lib/admin-user-contacts";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import type { VisitStatus } from "@/types/dashboard";
@@ -51,6 +52,10 @@ export default function AdminVisitsPage() {
     [visits, filter]
   );
   const pending = visits.filter((v) => v.status === "requested").length;
+  // ScheduleVisitModal only embeds a phone in `message` when the requester's account has one on
+  // file (e.g. phone-OTP signups); email/password accounts have none, so resolve their real
+  // account contact from Firebase Auth instead of leaving the row blank.
+  const contacts = useAdminUserContacts(shown.map((v) => v.requesterId));
 
   function respond(id: string, status: VisitStatus, label: string) {
     adminVisitsService.setStatus(id, status);
@@ -112,7 +117,10 @@ export default function AdminVisitsPage() {
                 </div>
                 <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">{v.propertyTitle}</p>
                 {(() => {
-                  const { phone, note } = splitContact(v.message);
+                  const { phone: messagePhone, note } = splitContact(v.message);
+                  const contact = v.requesterId ? contacts[v.requesterId] : undefined;
+                  const phone = messagePhone ?? contact?.phone;
+                  const email = contact?.email;
                   return (
                     <>
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-foreground/70">
@@ -129,6 +137,11 @@ export default function AdminVisitsPage() {
                             className="inline-flex items-center gap-1 font-semibold text-brand-navy hover:underline"
                           >
                             <Phone className="h-3.5 w-3.5" /> <span className="tabular-nums">{phone}</span>
+                          </a>
+                        )}
+                        {email && (
+                          <a href={`mailto:${email}`} className="inline-flex items-center gap-1 font-semibold text-brand-navy hover:underline">
+                            <Mail className="h-3.5 w-3.5" /> {email}
                           </a>
                         )}
                       </div>

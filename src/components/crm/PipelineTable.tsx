@@ -1,18 +1,21 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { MessageSquarePlus } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Workflow } from "lucide-react";
 import { leadsService } from "@/lib/services/leads.service";
 import type { AdminLeadsService } from "@/lib/services/admin-leads.service";
 import { dealsService } from "@/lib/services/deals.service";
+import { propertyRepository } from "@/lib/services/properties.service";
 import { allProperties } from "@/lib/data/seed-properties";
 import { getOwnerContact } from "@/lib/data/owner-contacts";
+import { useAdminUserContacts } from "@/lib/admin-user-contacts";
 import { STAGE_META } from "@/lib/lead-pipeline";
 import { RENTLET_STAFF } from "@/lib/data/staff";
 import { cn } from "@/lib/utils";
 import { DEFAULT_DOCUMENTS, LEAD_STAGES, type Lead, type LeadStage } from "@/types/dashboard";
+import type { Property } from "@/types/property";
 
 const SOURCE_LABEL: Record<string, string> = {
   contact: "Contact Form",
@@ -40,6 +43,38 @@ export function PipelineTable({
   const [openNotes, setOpenNotes] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const cols = canAssign ? 7 : 6;
+
+  // allProperties is only the static demo catalogue — a lead on a real (Firestore) property
+  // never appears there, so its owner info silently went missing. Fetch those separately.
+  const [fetchedProps, setFetchedProps] = useState<Record<string, Property>>({});
+  const missingIds = useMemo(
+    () =>
+      Array.from(new Set(leads.map((l) => l.propertyId))).filter(
+        (id) => !allProperties.some((p) => p.id === id) && !fetchedProps[id]
+      ),
+    [leads, fetchedProps]
+  );
+  useEffect(() => {
+    if (missingIds.length === 0) return;
+    let cancelled = false;
+    Promise.all(missingIds.map((id) => propertyRepository.getById(id))).then((results) => {
+      if (cancelled) return;
+      setFetchedProps((prev) => {
+        const next = { ...prev };
+        results.forEach((p, i) => {
+          if (p) next[missingIds[i]] = p;
+        });
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only when the actual id set changes
+  }, [missingIds.join(",")]);
+  // The demo catalogue's owners have contact info in the local static map; real owners don't —
+  // resolve those from their real account instead.
+  const ownerContacts = useAdminUserContacts(Object.values(fetchedProps).map((p) => p.ownerId));
 
   // Moving a lead to "Deal closed" writes it to the admin deal ledger (with the agreed
   // price, if negotiated); "Admin record" acknowledges that entry.
@@ -88,18 +123,20 @@ export function PipelineTable({
                 <td className="max-w-[220px] px-4 py-3 text-foreground/80">
                   <span className="line-clamp-2">{lead.propertyTitle}</span>
                   {(() => {
-                    const prop = allProperties.find((p) => p.id === lead.propertyId);
-                    const oc = prop ? getOwnerContact(prop.ownerId) : null;
+                    const prop = allProperties.find((p) => p.id === lead.propertyId) ?? fetchedProps[lead.propertyId];
                     if (!prop) return null;
+                    const phone = getOwnerContact(prop.ownerId)?.phone ?? ownerContacts[prop.ownerId]?.phone;
+                    const email = ownerContacts[prop.ownerId]?.email;
                     return (
                       <span className="mt-1 block text-[11px] text-muted-foreground">
                         Owner: {prop.ownerName}
-                        {oc ? (
+                        {phone ? (
                           <>
                             {" · "}
-                            <span className="tabular-nums">{oc.phone}</span>
+                            <span className="tabular-nums">{phone}</span>
                           </>
                         ) : null}
+                        {email ? <> {" · "} {email}</> : null}
                       </span>
                     );
                   })()}
