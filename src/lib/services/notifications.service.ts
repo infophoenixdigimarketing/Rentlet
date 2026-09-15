@@ -53,15 +53,6 @@ function seed(): AppNotification[] {
       read: true,
       createdAt: ago(900),
     },
-    {
-      id: "n6",
-      type: "SUBSCRIPTION_EXPIRING",
-      title: "Subscription expiring soon",
-      body: "Your Premium plan renews in 3 days.",
-      href: "/owner/subscription",
-      read: true,
-      createdAt: ago(1400),
-    },
   ];
 }
 
