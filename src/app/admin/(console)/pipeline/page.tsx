@@ -2,13 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { PipelineTable, ALL_STAGES } from "@/components/crm/PipelineTable";
-import { useLeads } from "@/lib/dashboard-hooks";
+import { useAdminLeads } from "@/lib/dashboard-hooks";
+import { adminLeadsService } from "@/lib/services/admin-leads.service";
 import { STAGE_META } from "@/lib/lead-pipeline";
 import { cn } from "@/lib/utils";
 import type { LeadStage } from "@/types/dashboard";
 
 export default function AdminPipelinePage() {
-  const leads = useLeads();
+  const leads = useAdminLeads();
   const [filter, setFilter] = useState<LeadStage | "all" | "unassigned">("all");
 
   const filtered = useMemo(() => {
@@ -47,7 +48,7 @@ export default function AdminPipelinePage() {
         ))}
       </div>
 
-      <PipelineTable leads={filtered} />
+      <PipelineTable leads={filtered} service={adminLeadsService} />
     </div>
   );
 }

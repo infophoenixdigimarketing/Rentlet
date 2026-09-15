@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { PipelineTable, ALL_STAGES } from "@/components/crm/PipelineTable";
-import { useLeads } from "@/lib/dashboard-hooks";
+import { useAdminLeads } from "@/lib/dashboard-hooks";
+import { adminLeadsService } from "@/lib/services/admin-leads.service";
 import { useStaffAuth } from "@/lib/staff-auth";
 import { STAGE_META } from "@/lib/lead-pipeline";
 import { cn } from "@/lib/utils";
@@ -10,7 +11,7 @@ import type { LeadStage } from "@/types/dashboard";
 
 export default function StaffPipelinePage() {
   const { staff } = useStaffAuth();
-  const leads = useLeads();
+  const leads = useAdminLeads();
   const [scope, setScope] = useState<"mine" | "all">("mine");
   const [stage, setStage] = useState<LeadStage | "all">("all");
 
@@ -71,7 +72,7 @@ export default function StaffPipelinePage() {
         ))}
       </div>
 
-      <PipelineTable leads={filtered} />
+      <PipelineTable leads={filtered} service={adminLeadsService} />
     </div>
   );
 }

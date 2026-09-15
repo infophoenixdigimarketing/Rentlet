@@ -5,6 +5,7 @@ import { MessageSquarePlus } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Workflow } from "lucide-react";
 import { leadsService } from "@/lib/services/leads.service";
+import type { AdminLeadsService } from "@/lib/services/admin-leads.service";
 import { dealsService } from "@/lib/services/deals.service";
 import { allProperties } from "@/lib/data/seed-properties";
 import { getOwnerContact } from "@/lib/data/owner-contacts";
@@ -23,25 +24,35 @@ const SOURCE_LABEL: Record<string, string> = {
 
 export const ALL_STAGES: LeadStage[] = [...LEAD_STAGES, "lost"];
 
-// Moving a lead to "Deal closed" writes it to the admin deal ledger (with the agreed
-// price, if negotiated); "Admin record" acknowledges that entry.
-function changeStage(lead: Lead, stage: LeadStage) {
-  leadsService.setStage(lead.id, stage);
-  if (stage === "deal_closed")
-    dealsService.recordFromLead({ ...lead, stage }, { value: lead.negotiation?.agreed ?? null });
-  if (stage === "recorded") dealsService.markRecorded(lead.id);
-}
-
 const NUM = (v: string) => (v.trim() === "" ? null : Number(v.replace(/[^\d]/g, "")) || null);
 
-export function PipelineTable({ leads, canAssign = true }: { leads: Lead[]; canAssign?: boolean }) {
+export function PipelineTable({
+  leads,
+  canAssign = true,
+  service = leadsService,
+}: {
+  leads: Lead[];
+  canAssign?: boolean;
+  /** Owner dashboard's leads are scoped to that owner; admin/staff consoles need every lead
+   *  site-wide instead — pass adminLeadsService there. Defaults to the owner-scoped service. */
+  service?: AdminLeadsService;
+}) {
   const [openNotes, setOpenNotes] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const cols = canAssign ? 7 : 6;
 
+  // Moving a lead to "Deal closed" writes it to the admin deal ledger (with the agreed
+  // price, if negotiated); "Admin record" acknowledges that entry.
+  function changeStage(lead: Lead, stage: LeadStage) {
+    service.setStage(lead.id, stage);
+    if (stage === "deal_closed")
+      dealsService.recordFromLead({ ...lead, stage }, { value: lead.negotiation?.agreed ?? null });
+    if (stage === "recorded") dealsService.markRecorded(lead.id);
+  }
+
   function submitNote(id: string) {
     if (!draft.trim()) return;
-    leadsService.addNote(id, draft);
+    service.addNote(id, draft);
     setDraft("");
   }
 
@@ -98,7 +109,7 @@ export function PipelineTable({ leads, canAssign = true }: { leads: Lead[]; canA
                   <td className="px-4 py-3">
                     <select
                       value={lead.assignedStaff ?? ""}
-                      onChange={(e) => leadsService.assign(lead.id, e.target.value || null)}
+                      onChange={(e) => service.assign(lead.id, e.target.value || null)}
                       className="rounded-lg border border-border bg-white px-2 py-1 text-xs font-semibold outline-none"
                     >
                       <option value="">Unassigned</option>
@@ -130,7 +141,7 @@ export function PipelineTable({ leads, canAssign = true }: { leads: Lead[]; canA
                   <input
                     type="date"
                     value={lead.nextAction ?? ""}
-                    onChange={(e) => leadsService.setNextAction(lead.id, e.target.value || null)}
+                    onChange={(e) => service.setNextAction(lead.id, e.target.value || null)}
                     className="rounded-lg border border-border bg-white px-2 py-1 text-xs outline-none"
                   />
                 </td>
@@ -160,7 +171,7 @@ export function PipelineTable({ leads, canAssign = true }: { leads: Lead[]; canA
                             type="date"
                             value={lead.visit?.date ?? ""}
                             onChange={(e) =>
-                              leadsService.setVisit(lead.id, {
+                              service.setVisit(lead.id, {
                                 date: e.target.value,
                                 slot: lead.visit?.slot ?? "",
                                 done: lead.visit?.done ?? false,
@@ -172,7 +183,7 @@ export function PipelineTable({ leads, canAssign = true }: { leads: Lead[]; canA
                             type="text"
                             value={lead.visit?.slot ?? ""}
                             onChange={(e) =>
-                              leadsService.setVisit(lead.id, {
+                              service.setVisit(lead.id, {
                                 date: lead.visit?.date ?? "",
                                 slot: e.target.value,
                                 done: lead.visit?.done ?? false,
@@ -186,7 +197,7 @@ export function PipelineTable({ leads, canAssign = true }: { leads: Lead[]; canA
                               type="checkbox"
                               checked={lead.visit?.done ?? false}
                               onChange={(e) =>
-                                leadsService.setVisit(lead.id, {
+                                service.setVisit(lead.id, {
                                   date: lead.visit?.date ?? "",
                                   slot: lead.visit?.slot ?? "",
                                   done: e.target.checked,
@@ -213,7 +224,7 @@ export function PipelineTable({ leads, canAssign = true }: { leads: Lead[]; canA
                                   inputMode="numeric"
                                   value={lead.negotiation?.[k] ?? ""}
                                   onChange={(e) =>
-                                    leadsService.setNegotiation(lead.id, { [k]: NUM(e.target.value) })
+                                    service.setNegotiation(lead.id, { [k]: NUM(e.target.value) })
                                   }
                                   className="w-full py-1.5 text-sm outline-none"
                                 />
@@ -233,7 +244,7 @@ export function PipelineTable({ leads, canAssign = true }: { leads: Lead[]; canA
                                 <input
                                   type="checkbox"
                                   checked={d.done}
-                                  onChange={() => leadsService.toggleDocument(lead.id, d.label)}
+                                  onChange={() => service.toggleDocument(lead.id, d.label)}
                                   className="h-4 w-4 rounded border-border accent-emerald-600"
                                 />
                                 <span className={cn(d.done && "text-muted-foreground line-through")}>{d.label}</span>

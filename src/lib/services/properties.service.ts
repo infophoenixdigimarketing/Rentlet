@@ -117,7 +117,10 @@ class FirebasePropertyRepository implements PropertyRepository {
       fsLimit(limitCount)
     );
     const snap = await getDocs(q);
-    return mapSnapshot(snap, toProperty);
+    const real = mapSnapshot(snap, toProperty);
+    // No real listing has been marked featured yet — fall back to the starter catalogue so the
+    // homepage doesn't look empty. Stops being used automatically once an admin features a real one.
+    return real.length > 0 ? real : featuredProperties.filter(isDiscoverable).slice(0, limitCount);
   }
 
   async getById(id: string): Promise<Property | null> {

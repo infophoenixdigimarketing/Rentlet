@@ -196,7 +196,13 @@ class FirebaseSearchProvider implements SearchProvider {
         where("verificationStatus", "==", "approved")
       )
     );
-    const discoverable = snap.docs.map((d) => mapPropertyDoc(d.id, d.data()));
+    let discoverable = snap.docs.map((d) => mapPropertyDoc(d.id, d.data()));
+    // No real listings approved yet — fall back to the starter catalogue so the site doesn't
+    // look empty/broken to visitors while real ones are still being posted and reviewed. Stops
+    // being used automatically the moment at least one real listing is approved.
+    if (discoverable.length === 0) {
+      discoverable = allProperties.filter((p) => p.status === "active" && p.verificationStatus === "approved");
+    }
     const items = filterAndSort(discoverable, filters);
     return { items, total: items.length };
   }

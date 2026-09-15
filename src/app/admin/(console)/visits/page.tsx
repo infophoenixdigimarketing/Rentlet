@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import { CalendarClock, Check, X, Users, CheckCheck, Phone } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { useVisits } from "@/lib/dashboard-hooks";
-import { visitsService } from "@/lib/services/visits.service";
+import { useAdminVisits } from "@/lib/dashboard-hooks";
+import { adminVisitsService } from "@/lib/services/admin-visits.service";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import type { VisitStatus } from "@/types/dashboard";
@@ -43,7 +43,7 @@ function splitContact(message: string | null): { phone: string | null; note: str
 }
 
 export default function AdminVisitsPage() {
-  const visits = useVisits();
+  const visits = useAdminVisits();
   const [filter, setFilter] = useState<VisitStatus | "all">("all");
 
   const shown = useMemo(
@@ -53,7 +53,7 @@ export default function AdminVisitsPage() {
   const pending = visits.filter((v) => v.status === "requested").length;
 
   function respond(id: string, status: VisitStatus, label: string) {
-    visitsService.setStatus(id, status);
+    adminVisitsService.setStatus(id, status);
     toast(label, status === "confirmed" ? "success" : "info");
   }
 
