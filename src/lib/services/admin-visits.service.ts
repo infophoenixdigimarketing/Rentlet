@@ -5,7 +5,8 @@
 // already has one shared store with no such scoping, so it's reused as-is; only Firebase mode
 // needs a real unfiltered listener (readable by a real admin per firestore.rules' isAdmin()).
 import { collection, doc, onSnapshot, orderBy, query, updateDoc } from "firebase/firestore";
-import { getDb } from "@/lib/firebase/client";
+import { onAuthStateChanged } from "firebase/auth";
+import { getDb, getFirebaseAuth } from "@/lib/firebase/client";
 import { isFirestoreEnabled } from "@/lib/firebase/config";
 import { visitsService } from "@/lib/services/visits.service";
 import { notificationsService } from "@/lib/services/notifications.service";
@@ -46,22 +47,31 @@ function toVisit(id: string, data: Record<string, unknown>): OwnerVisit {
 class FirebaseAdminVisitsService implements AdminVisitsService {
   private snapshot: OwnerVisit[] = [];
   private listeners: (() => void)[] = [];
+  private unsubQuery: (() => void) | null = null;
 
   constructor() {
     if (typeof window === "undefined") return;
-    const q = query(collection(getDb(), COLLECTION), orderBy("date", "desc"));
-    onSnapshot(
-      q,
-      (snap) => {
-        this.snapshot = snap.docs.map((d) => toVisit(d.id, d.data()));
-        this.listeners.forEach((l) => l());
-      },
-      () => {
-        // Not signed in as a real admin — the unfiltered query is rejected outright.
-        this.snapshot = [];
-        this.listeners.forEach((l) => l());
-      }
-    );
+    // Subscribing immediately (at module-load time) can race Firebase Auth restoring the
+    // session after a page load/navigation — a query that lands before that finishes is
+    // rejected as unauthenticated, and Firestore does not retry a listener on its own once it
+    // has errored out. onAuthStateChanged always fires with the real, settled auth state.
+    onAuthStateChanged(getFirebaseAuth(), () => {
+      this.unsubQuery?.();
+      this.unsubQuery = null;
+      const q = query(collection(getDb(), COLLECTION), orderBy("date", "desc"));
+      this.unsubQuery = onSnapshot(
+        q,
+        (snap) => {
+          this.snapshot = snap.docs.map((d) => toVisit(d.id, d.data()));
+          this.listeners.forEach((l) => l());
+        },
+        () => {
+          // Not signed in as a real admin — the unfiltered query is rejected outright.
+          this.snapshot = [];
+          this.listeners.forEach((l) => l());
+        }
+      );
+    });
   }
 
   getAll(): OwnerVisit[] {

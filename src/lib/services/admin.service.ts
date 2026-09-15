@@ -9,9 +9,10 @@
 // isAdmin() is true), so the demo-admin session shows an empty queue until a real admin account
 // is set up. See admin-auth.service.ts.
 import { collection, doc, onSnapshot, orderBy, query, updateDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 import { allProperties } from "@/lib/data/seed-properties";
 import { isFirestoreEnabled } from "@/lib/firebase/config";
-import { getDb } from "@/lib/firebase/client";
+import { getDb, getFirebaseAuth } from "@/lib/firebase/client";
 import { PROPERTIES_COLLECTION, mapPropertyDoc } from "@/lib/firebase/properties-shared";
 import type { Property, PropertyStatus, VerificationStatus } from "@/types/property";
 
@@ -85,23 +86,32 @@ class MockAdminPropertiesService implements AdminPropertiesService {
 class FirebaseAdminPropertiesService implements AdminPropertiesService {
   private firebaseSnapshot: Property[] = [];
   private firebaseListeners: (() => void)[] = [];
+  private unsubQuery: (() => void) | null = null;
 
   constructor() {
     if (typeof window === "undefined") return;
-    const q = query(collection(getDb(), PROPERTIES_COLLECTION), orderBy("createdAt", "desc"));
-    onSnapshot(
-      q,
-      (snap) => {
-        this.firebaseSnapshot = snap.docs.map((d) => mapPropertyDoc(d.id, d.data()));
-        this.firebaseListeners.forEach((l) => l());
-      },
-      () => {
-        // Not signed in as a real admin — the query is rejected outright. Show an empty
-        // queue rather than throwing.
-        this.firebaseSnapshot = [];
-        this.firebaseListeners.forEach((l) => l());
-      }
-    );
+    // Subscribing immediately (at module-load time) can race Firebase Auth restoring the
+    // session after a page load/navigation — a query that lands before that finishes is
+    // rejected as unauthenticated, and Firestore does not retry a listener on its own once it
+    // has errored out. onAuthStateChanged always fires with the real, settled auth state.
+    onAuthStateChanged(getFirebaseAuth(), () => {
+      this.unsubQuery?.();
+      this.unsubQuery = null;
+      const q = query(collection(getDb(), PROPERTIES_COLLECTION), orderBy("createdAt", "desc"));
+      this.unsubQuery = onSnapshot(
+        q,
+        (snap) => {
+          this.firebaseSnapshot = snap.docs.map((d) => mapPropertyDoc(d.id, d.data()));
+          this.firebaseListeners.forEach((l) => l());
+        },
+        () => {
+          // Not signed in as a real admin — the query is rejected outright. Show an empty
+          // queue rather than throwing.
+          this.firebaseSnapshot = [];
+          this.firebaseListeners.forEach((l) => l());
+        }
+      );
+    });
   }
 
   getAll(): Property[] {

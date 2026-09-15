@@ -3,7 +3,8 @@
 // signed-in user's own ownerId for the owner dashboard, which would hide every other owner's
 // leads from the admin/staff pipeline. Mock mode already has one shared, unscoped store.
 import { collection, doc, onSnapshot, orderBy, query, updateDoc } from "firebase/firestore";
-import { getDb } from "@/lib/firebase/client";
+import { onAuthStateChanged } from "firebase/auth";
+import { getDb, getFirebaseAuth } from "@/lib/firebase/client";
 import { isFirestoreEnabled } from "@/lib/firebase/config";
 import { leadsService } from "@/lib/services/leads.service";
 import { toIso } from "@/lib/firebase/firestore-helpers";
@@ -31,38 +32,51 @@ class FirebaseAdminLeadsService implements AdminLeadsService {
   private snapshot: Lead[] = [];
   private listeners: (() => void)[] = [];
 
+  private unsubQuery: (() => void) | null = null;
+
   constructor() {
     if (typeof window === "undefined") return;
-    const q = query(collection(getDb(), COLLECTION), orderBy("createdAt", "desc"));
-    onSnapshot(
-      q,
-      (snap) => {
-        this.snapshot = snap.docs.map((d) => {
-          const data = d.data();
-          return {
-            id: d.id,
-            propertyId: data.propertyId,
-            propertyTitle: data.propertyTitle,
-            userName: data.userName,
-            userPhone: data.userPhone,
-            source: data.source,
-            stage: (data.stage ?? "lead") as LeadStage,
-            assignedStaff: data.assignedStaff ?? null,
-            nextAction: toIso(data.nextAction) ?? null,
-            notes: Array.isArray(data.notes) ? data.notes : [],
-            visit: data.visit ?? null,
-            negotiation: data.negotiation ?? null,
-            documents: Array.isArray(data.documents) && data.documents.length ? data.documents : freshDocuments(),
-            createdAt: toIso(data.createdAt) ?? new Date().toISOString(),
-          } as Lead;
-        });
-        this.listeners.forEach((l) => l());
-      },
-      () => {
-        this.snapshot = [];
-        this.listeners.forEach((l) => l());
-      }
-    );
+    // Subscribing to this query immediately (at module-load time) can race Firebase Auth
+    // restoring the session after a page load/navigation — if the very first attempt lands
+    // before that finishes, the query is rejected as unauthenticated and Firestore does NOT
+    // retry on its own once a listener has errored out, even after the real session resolves a
+    // moment later. onAuthStateChanged always fires with the actual, settled auth state, so
+    // wait for that instead of subscribing blindly (and re-subscribe if the signed-in user ever
+    // changes, matching the pattern already used for the owner-scoped services).
+    onAuthStateChanged(getFirebaseAuth(), () => {
+      this.unsubQuery?.();
+      this.unsubQuery = null;
+      const q = query(collection(getDb(), COLLECTION), orderBy("createdAt", "desc"));
+      this.unsubQuery = onSnapshot(
+        q,
+        (snap) => {
+          this.snapshot = snap.docs.map((d) => {
+            const data = d.data();
+            return {
+              id: d.id,
+              propertyId: data.propertyId,
+              propertyTitle: data.propertyTitle,
+              userName: data.userName,
+              userPhone: data.userPhone,
+              source: data.source,
+              stage: (data.stage ?? "lead") as LeadStage,
+              assignedStaff: data.assignedStaff ?? null,
+              nextAction: toIso(data.nextAction) ?? null,
+              notes: Array.isArray(data.notes) ? data.notes : [],
+              visit: data.visit ?? null,
+              negotiation: data.negotiation ?? null,
+              documents: Array.isArray(data.documents) && data.documents.length ? data.documents : freshDocuments(),
+              createdAt: toIso(data.createdAt) ?? new Date().toISOString(),
+            } as Lead;
+          });
+          this.listeners.forEach((l) => l());
+        },
+        () => {
+          this.snapshot = [];
+          this.listeners.forEach((l) => l());
+        }
+      );
+    });
   }
 
   getAll(): Lead[] {
