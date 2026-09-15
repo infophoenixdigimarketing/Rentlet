@@ -190,7 +190,7 @@ export default function ProfilePage() {
                 href={`/property/${p.slug}/${p.id}`}
                 className="w-40 shrink-0 overflow-hidden rounded-xl border border-border bg-white"
               >
-                <PropertyImage id={p.id} propertyType={p.propertyType} className="h-24 w-full" />
+                <PropertyImage id={p.id} propertyType={p.propertyType} image={p.images[0]} className="h-24 w-full" />
                 <div className="p-2.5">
                   <p className="text-xs font-bold text-brand-navy">{priceLabel(p)}</p>
                   <p className="line-clamp-1 text-[11px] text-muted-foreground">{p.locality}, {p.city}</p>

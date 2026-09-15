@@ -149,7 +149,7 @@ function Row({
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-border bg-white p-3 sm:flex-row sm:items-center">
-      <PropertyImage id={property.id} propertyType={property.propertyType} className="h-20 w-28 shrink-0 rounded-xl sm:h-16 sm:w-24" />
+      <PropertyImage id={property.id} propertyType={property.propertyType} image={property.images[0]} className="h-20 w-28 shrink-0 rounded-xl sm:h-16 sm:w-24" />
 
       <div className="min-w-0 flex-1">
         <p className="line-clamp-1 text-sm font-semibold text-foreground">{property.title}</p>

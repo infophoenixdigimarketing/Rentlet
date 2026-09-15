@@ -90,7 +90,7 @@ function PropertyRow({ property }: { property: Property }) {
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-border bg-white p-3 sm:flex-row">
       <div className="relative h-32 w-full shrink-0 overflow-hidden rounded-xl sm:w-44">
-        <PropertyImage id={property.id} propertyType={property.propertyType} className="h-full w-full" />
+        <PropertyImage id={property.id} propertyType={property.propertyType} image={property.images[0]} className="h-full w-full" />
         {property.featured && (
           <span className="absolute left-2 top-2">
             <Badge variant="orange">FEATURED</Badge>

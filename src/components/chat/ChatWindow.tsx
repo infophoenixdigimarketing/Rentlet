@@ -283,7 +283,7 @@ function PropertyCardChip({ propertyId }: { propertyId: string }) {
 
   return (
     <Link href={`/property/${property.slug}/${property.id}`} className="flex w-56 items-center gap-2.5 rounded-xl bg-white p-2 text-foreground">
-      <PropertyImage id={property.id} propertyType={property.propertyType} className="h-12 w-12 shrink-0 rounded-lg" />
+      <PropertyImage id={property.id} propertyType={property.propertyType} image={property.images[0]} className="h-12 w-12 shrink-0 rounded-lg" />
       <div className="min-w-0">
         <p className="line-clamp-1 text-xs font-semibold">{property.title}</p>
         <p className="text-xs font-bold text-brand-navy">{priceLabel(property)}</p>

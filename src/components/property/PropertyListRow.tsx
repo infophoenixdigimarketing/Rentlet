@@ -17,7 +17,7 @@ export function PropertyListRow({ property }: { property: Property }) {
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-border bg-white p-3 transition-shadow hover:shadow-lg hover:shadow-brand-navy/5 sm:flex-row">
       <Link href={href} className="relative block h-44 shrink-0 overflow-hidden rounded-xl sm:h-36 sm:w-56">
-        <PropertyImage id={property.id} propertyType={property.propertyType} locality={property.locality} city={property.city} className="h-full w-full" />
+        <PropertyImage id={property.id} propertyType={property.propertyType} locality={property.locality} city={property.city} image={property.images[0]} className="h-full w-full" />
         <div className="absolute left-2 top-2 flex flex-wrap gap-1">
           {property.featured && <Badge variant="orange">FEATURED</Badge>}
           {property.verificationStatus === "approved" && (

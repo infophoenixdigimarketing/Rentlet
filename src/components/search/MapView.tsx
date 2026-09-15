@@ -68,7 +68,7 @@ export function MapView({ properties }: { properties: Property[] }) {
           >
             <X className="h-3.5 w-3.5" />
           </button>
-          <PropertyImage id={selected.id} propertyType={selected.propertyType} className="h-40 w-full" />
+          <PropertyImage id={selected.id} propertyType={selected.propertyType} image={selected.images[0]} className="h-40 w-full" />
           <div className="p-4">
             <p className="text-lg font-extrabold text-brand-navy">{priceLabel(selected)}</p>
             <h3 className="mt-1 line-clamp-1 text-sm font-semibold text-foreground">{selected.title}</h3>

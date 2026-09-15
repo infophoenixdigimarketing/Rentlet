@@ -111,7 +111,7 @@ function FavoriteRow({ entry, property, folders }: { entry: FavoriteEntry; prope
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-border bg-white p-3 sm:flex-row sm:items-center">
       <Link href={href} className="relative block h-32 w-full shrink-0 overflow-hidden rounded-xl sm:h-20 sm:w-28">
-        <PropertyImage id={property.id} propertyType={property.propertyType} className="h-full w-full" />
+        <PropertyImage id={property.id} propertyType={property.propertyType} image={property.images[0]} className="h-full w-full" />
       </Link>
 
       <div className="min-w-0 flex-1">

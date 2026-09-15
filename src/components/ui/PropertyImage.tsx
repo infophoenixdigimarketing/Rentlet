@@ -1,5 +1,10 @@
-// On-brand generated placeholder — no external image URLs to break (spec §64).
-// Deterministic per-id gradient + property-type icon watermark so cards still feel distinct.
+// Real listings (Firebase mode) carry genuine Storage URLs — shown directly when present.
+// Demo/seed listings (and real ones before their first photo finishes uploading) have none, so
+// this falls back to an on-brand generated placeholder: a deterministic per-id gradient +
+// property-type icon watermark, so cards still feel distinct instead of showing nothing.
+"use client";
+
+import { useState } from "react";
 import {
   Building2,
   Home,
@@ -48,14 +53,27 @@ export function PropertyImage({
   propertyType,
   locality,
   city,
+  image,
   className,
 }: {
   id: string;
   propertyType: PropertyType;
   locality?: string;
   city?: string;
+  /** Real uploaded cover photo (property.images[0]), when there is one. Falls back to the
+   *  generated placeholder below when absent, or if the URL fails to load. */
+  image?: string | null;
   className?: string;
 }) {
+  const [broken, setBroken] = useState(false);
+
+  if (image && !broken) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- Firebase Storage URL, not a local /public asset
+      <img src={image} alt="" onError={() => setBroken(true)} className={cn("object-cover", className)} />
+    );
+  }
+
   const Icon = ICONS[propertyType] ?? Building2;
   const gradient = GRADIENTS[hashIndex(id, GRADIENTS.length)];
 

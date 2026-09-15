@@ -21,7 +21,12 @@ export function Step11Preview({ state }: { state: WizardState }) {
 
       <div className="mt-5 overflow-hidden rounded-2xl border border-border">
         <div className="relative h-56 w-full">
-          <PropertyImage id="preview" propertyType={property.propertyType} className="h-full w-full" />
+          <PropertyImage
+            id="preview"
+            propertyType={property.propertyType}
+            image={state.cover?.previewUrl ?? state.gallery[0]?.previewUrl}
+            className="h-full w-full"
+          />
           <div className="absolute left-3 top-3 flex gap-1.5">
             <Badge variant="orange">PREVIEW</Badge>
             <Badge variant="outline">PENDING VERIFICATION</Badge>
