@@ -9,6 +9,7 @@ import { VerifyChecklistModal } from "@/components/admin/VerifyChecklistModal";
 import { useAdminProperties } from "@/lib/admin-data";
 import { adminPropertiesService } from "@/lib/services/admin.service";
 import { getOwnerContact } from "@/lib/data/owner-contacts";
+import { useAdminUserContacts } from "@/lib/admin-user-contacts";
 import { cn, priceLabel } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import type { Property, VerificationStatus } from "@/types/property";
@@ -146,6 +147,9 @@ function Row({
   onVerify: () => void;
 }) {
   const isSuspended = property.status === "paused";
+  // getOwnerContact only has entries for the demo catalogue's owners; a real owner's contact
+  // isn't in that static map, so resolve it from their real account instead.
+  const liveContact = useAdminUserContacts([property.ownerId])[property.ownerId];
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-border bg-white p-3 sm:flex-row sm:items-center">
@@ -161,15 +165,18 @@ function Row({
         </p>
         {(() => {
           const oc = getOwnerContact(property.ownerId);
+          const phone = oc?.phone ?? liveContact?.phone;
+          const email = oc?.email ?? liveContact?.email;
           return (
             <p className="text-[11px] text-muted-foreground">
               <span className="font-semibold text-foreground/70">Owner:</span> {property.ownerName}
-              {oc ? (
+              {phone ? (
                 <>
                   {" · "}
-                  <span className="tabular-nums">{oc.phone}</span> · {oc.email}
+                  <span className="tabular-nums">{phone}</span>
                 </>
               ) : null}
+              {email ? ` · ${email}` : ""}
             </p>
           );
         })()}
