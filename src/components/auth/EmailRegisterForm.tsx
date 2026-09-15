@@ -42,6 +42,7 @@ export function EmailRegisterForm({
   const effectiveName = externalName ?? name;
   const [email, setEmail] = useState("");
   const effectiveEmail = externalEmail ?? email;
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +52,12 @@ export function EmailRegisterForm({
     setError(null);
     if (!effectiveEmail.trim()) {
       setError("Enter your email above.");
+      return;
+    }
+    // Email accounts otherwise have no phone on file at all — required so a RENTLET manager can
+    // always call back about a visit or listing, the same way a phone-OTP account already works.
+    if (!/^\d{10}$/.test(phone)) {
+      setError("Enter a valid 10-digit mobile number.");
       return;
     }
     if (password.length < 6) {
@@ -64,6 +71,7 @@ export function EmailRegisterForm({
         email: effectiveEmail,
         password,
         role,
+        phone: `+91${phone}`,
       });
       const first = user.name.split(" ")[0] || "there";
       greet(
@@ -115,6 +123,24 @@ export function EmailRegisterForm({
           placeholder="you@example.com"
         />
       )}
+      <label className="flex flex-col gap-1.5">
+        <span className="text-xs font-semibold text-foreground/80">Phone Number</span>
+        <span className="flex items-stretch">
+          <span className="flex h-11 shrink-0 items-center rounded-l-xl border border-r-0 border-border bg-muted px-3 text-sm font-semibold text-foreground">
+            +91
+          </span>
+          <input
+            type="tel"
+            inputMode="numeric"
+            required
+            maxLength={10}
+            value={phone}
+            onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+            placeholder="9876543210"
+            className="h-11 w-full rounded-r-xl border border-border bg-white px-3.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-brand-navy"
+          />
+        </span>
+      </label>
       <Input
         label="Password"
         type="password"

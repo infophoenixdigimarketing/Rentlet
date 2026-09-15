@@ -52,7 +52,7 @@ export interface AuthProvider {
   sendOtp(phone: string): Promise<void>;
   verifyOtp(phone: string, code: string, newUser?: { name: string; role: UserRole; email?: string }): Promise<AuthUser>;
   loginWithEmail(email: string, password: string): Promise<AuthUser>;
-  registerWithEmail(input: { name: string; email: string; password: string; role: UserRole }): Promise<AuthUser>;
+  registerWithEmail(input: { name: string; email: string; password: string; role: UserRole; phone: string }): Promise<AuthUser>;
   /**
    * `account` picks which demo Google identity to sign in as (defaults to the first).
    * `newUserRole` (from the register flow) sets the role when that account is first created.
@@ -232,7 +232,7 @@ class MockAuthProvider implements AuthProvider {
     return stripped;
   }
 
-  async registerWithEmail(input: { name: string; email: string; password: string; role: UserRole }): Promise<AuthUser> {
+  async registerWithEmail(input: { name: string; email: string; password: string; role: UserRole; phone: string }): Promise<AuthUser> {
     await delay(600);
     const users = loadUsers();
     if (emailInUse(users, input.email)) {
@@ -242,7 +242,7 @@ class MockAuthProvider implements AuthProvider {
       id: `u${Date.now()}`,
       name: input.name,
       email: input.email,
-      phone: null,
+      phone: input.phone || null,
       role: input.role,
       isVerified: false,
       emailVerified: true,
@@ -501,6 +501,21 @@ async function sendEmailOtpRequest(firebaseUser: FirebaseUser): Promise<void> {
   }
 }
 
+// Sets an unverified phone number on an email/password account — see api/auth/set-phone for why
+// this needs the Admin SDK rather than a direct client-side call.
+async function setPhoneRequest(firebaseUser: FirebaseUser, phone: string): Promise<void> {
+  const idToken = await firebaseUser.getIdToken();
+  const res = await fetch("/api/auth/set-phone", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+    body: JSON.stringify({ phone }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}) as { error?: string });
+    throw new Error(body.error || "Couldn't save that phone number.");
+  }
+}
+
 class FirebaseAuthProvider implements AuthProvider {
   private listeners: ((user: AuthUser | null) => void)[] = [];
   private current: AuthUser | null = null;
@@ -599,14 +614,20 @@ class FirebaseAuthProvider implements AuthProvider {
     }
   }
 
-  async registerWithEmail(input: { name: string; email: string; password: string; role: UserRole }): Promise<AuthUser> {
+  async registerWithEmail(input: { name: string; email: string; password: string; role: UserRole; phone: string }): Promise<AuthUser> {
     try {
       const credential = await createUserWithEmailAndPassword(getFirebaseAuth(), input.email, input.password);
       await updateFirebaseDisplayName(credential.user, { displayName: input.name });
+      // Email accounts have no verified phone otherwise, which left admin with no way to call
+      // back a visitor who scheduled a visit or posted a listing — set it via the Admin SDK
+      // (the client SDK can't set an arbitrary phoneNumber without a real OTP verification).
+      // Best-effort: a failure here must not block an otherwise-successful signup.
+      await setPhoneRequest(credential.user, input.phone).catch(() => {});
       // Email the 6-digit verification code. Best-effort: a failure here (rate limit, mail
       // server hiccup, etc.) must not block an otherwise-successful signup — EmailVerifyGate's
       // "Resend code" covers a failed first send.
       await sendEmailOtpRequest(credential.user).catch(() => {});
+      await credential.user.reload();
       const user = firebaseUserToAuthUser(credential.user, { name: input.name, role: input.role });
       this.current = user;
       this.ready = true;
