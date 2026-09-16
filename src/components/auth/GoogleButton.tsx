@@ -30,7 +30,8 @@ export function GoogleButton({
         /* fall back to the toast */
       }
       toast(`Welcome, ${first}!`);
-      notifyLogin({ email: user.email, name: first, isNewAccount: Boolean(role) });
+      // Only the one-time new-member welcome email, never on a regular repeat login.
+      if (role) notifyLogin({ email: user.email, name: first, isNewAccount: true });
       router.push(redirectTo);
     } catch (err) {
       toast(err instanceof Error ? err.message : "Google sign-in failed. Try again.", "error");

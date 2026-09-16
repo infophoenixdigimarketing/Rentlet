@@ -52,6 +52,8 @@ const NAV_MENUS: { label: string; href: string; icon: LucideIcon; items: NavItem
       { label: "Post a House", href: "/post-property" },
       { label: "Post an Apartment", href: "/post-property" },
       { label: "Post a Villa", href: "/post-property" },
+      { label: "Post PG / Co-living", href: "/post-property" },
+      { label: "Post for Flatmates", href: "/post-property" },
       { label: "Post Commercial", href: "/post-property" },
     ],
   },

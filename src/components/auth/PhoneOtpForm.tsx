@@ -110,7 +110,8 @@ export function PhoneOtpForm({
         /* fall back to the toast */
       }
       toast(`Welcome${newUser ? " to Rentlet" : " back"}, ${first}!`);
-      notifyLogin({ email: user.email, name: first, isNewAccount: Boolean(newUser) });
+      // Only the one-time new-member welcome email, never on a regular repeat login.
+      if (newUser) notifyLogin({ email: user.email, name: first, isNewAccount: true });
       router.push(redirectTo);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");

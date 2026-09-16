@@ -33,21 +33,27 @@ export async function POST(req: Request) {
   });
 
   const heading = body.isNewAccount ? `Welcome to Rentlet, ${name}!` : `Welcome back, ${name}!`;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://rentlet.in";
 
   try {
     await transporter.sendMail({
       from: `Rentlet <${user}>`,
       to: email,
       subject: heading,
-      html: `
-        <p>Hi ${name},</p>
-        <p>${
-          body.isNewAccount
-            ? "Your Rentlet account is ready. Browse verified homes, apartments, villas and more — or post your own property for free."
-            : "Good to see you again on Rentlet."
-        }</p>
-        <p>— Team Rentlet</p>
-      `,
+      html: body.isNewAccount
+        ? `
+          <p>Hi ${name},</p>
+          <p>Your Rentlet account is ready. Browse verified homes, apartments, villas and more — or post your own property for free.</p>
+          <p style="margin:24px 0;">
+            <a href="${siteUrl}/properties" style="background:#FF5A00;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Explore Rentlet</a>
+          </p>
+          <p>— Team Rentlet</p>
+        `
+        : `
+          <p>Hi ${name},</p>
+          <p>Good to see you again on Rentlet.</p>
+          <p>— Team Rentlet</p>
+        `,
     });
     return NextResponse.json({ ok: true });
   } catch (err) {
