@@ -1563,6 +1563,7 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
                   <label className="block">
                     <span className="text-sm font-semibold text-foreground">
                       {role === "agent" ? "Your Name (agent)" : role === "builder" ? "Your Name (builder rep)" : "Your Name"}
+                      <span className="text-red-500"> *</span>
                     </span>
                     <input
                       type="text"

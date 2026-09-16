@@ -18,7 +18,9 @@ export interface OwnerPropertiesService {
   addProperty(property: Property): void;
   setStatus(id: string, status: PropertyStatus): void;
   toggleFeatured(id: string): void;
-  remove(id: string): void;
+  /** Returns once the delete is confirmed (Firestore mode) so callers can surface a failure —
+   *  a permission-denied write must not silently report "deleted" while the listing stays put. */
+  remove(id: string): Promise<void>;
 }
 
 class MockOwnerPropertiesService implements OwnerPropertiesService {
@@ -52,7 +54,7 @@ class MockOwnerPropertiesService implements OwnerPropertiesService {
     this.store = this.store.map((p) => (p.id === id ? { ...p, featured: !p.featured } : p));
     this.emit();
   }
-  remove(id: string) {
+  async remove(id: string) {
     this.store = this.store.filter((p) => p.id !== id);
     this.emit();
   }
@@ -83,7 +85,9 @@ class FirebaseOwnerPropertiesService implements OwnerPropertiesService {
     }
     const q = query(collection(getDb(), PROPERTIES_COLLECTION), where("ownerId", "==", uid), orderBy("createdAt", "desc"));
     this.unsubQuery = onSnapshot(q, (snap) => {
-      this.snapshot = snap.docs.map((d) => mapPropertyDoc(d.id, d.data()));
+      // remove() is a soft delete (status -> "deleted", see propertyRepository.remove) so the
+      // document stays queryable for records — but it must drop out of "My Properties" itself.
+      this.snapshot = snap.docs.map((d) => mapPropertyDoc(d.id, d.data())).filter((p) => p.status !== "deleted");
       this.listeners.forEach((l) => l());
     });
   }
@@ -108,7 +112,7 @@ class FirebaseOwnerPropertiesService implements OwnerPropertiesService {
     if (current) void propertyRepository.update(id, { featured: !current.featured });
   }
   remove(id: string) {
-    void propertyRepository.remove(id);
+    return propertyRepository.remove(id);
   }
 }
 

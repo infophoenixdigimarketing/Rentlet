@@ -75,14 +75,24 @@ function PropertyRow({ property }: { property: Property }) {
     toast(`Marked as ${next}`);
   }
 
-  function del() {
+  const [deleting, setDeleting] = useState(false);
+
+  async function del() {
     if (!confirmingDelete) {
       setConfirmingDelete(true);
       setTimeout(() => setConfirmingDelete(false), 3000);
       return;
     }
-    ownerPropertiesService.remove(property.id);
-    toast("Listing deleted", "info");
+    setDeleting(true);
+    try {
+      await ownerPropertiesService.remove(property.id);
+      toast("Listing deleted", "info");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Couldn't delete this listing. Try again.", "error");
+    } finally {
+      setDeleting(false);
+      setConfirmingDelete(false);
+    }
   }
 
   const isClosed = property.status === "rented" || property.status === "sold";
@@ -156,12 +166,13 @@ function PropertyRow({ property }: { property: Property }) {
           <button
             type="button"
             onClick={del}
+            disabled={deleting}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold",
+              "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60",
               confirmingDelete ? "border-red-500 bg-red-50 text-red-600" : "border-border text-foreground hover:bg-muted"
             )}
           >
-            <Trash2 className="h-3.5 w-3.5" /> {confirmingDelete ? "Confirm delete?" : "Delete"}
+            <Trash2 className="h-3.5 w-3.5" /> {deleting ? "Deleting..." : confirmingDelete ? "Confirm delete?" : "Delete"}
           </button>
         </div>
       </div>
