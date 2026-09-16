@@ -45,7 +45,7 @@ import { notificationsService } from "@/lib/services/notifications.service";
 import { allCities } from "@/lib/data/cities";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import { initialWizardState, type WizardState } from "@/types/wizard";
+import { initialWizardState, type WizardState, type WizardMediaFile } from "@/types/wizard";
 import type { Furnishing, ListingType, Property, PropertyType } from "@/types/property";
 import type { AuthUser } from "@/types/user";
 
@@ -507,7 +507,10 @@ const DAY_OPTIONS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const VISIT_TIME_OPTIONS = ["Morning (9–12)", "Afternoon (12–4)", "Evening (4–8)"];
 const MAX_PHOTOS = 12;
 
-type MediaItem = { id: string; url: string; name: string };
+// `file` is the real File object — the blob `url` alone can't be re-uploaded to Storage, so it
+// must be carried alongside the preview URL, not discarded, or submitProperty() has nothing to
+// actually upload (see buildWizardState()'s cover/gallery/video mapping below).
+type MediaItem = { id: string; url: string; name: string; file: File };
 
 // You can offer a property for Rent, Lease or Sale here — "Buy" is a seeker action, not a listing.
 const LOOKING_TO = ["Rent", "Lease", "Sell"] as const;
@@ -1104,6 +1107,7 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         url: URL.createObjectURL(f),
         name: f.name,
+        file: f,
       }));
     setForm((prev) => ({ ...prev, photos: [...prev.photos, ...items].slice(0, MAX_PHOTOS) }));
   }
@@ -1121,7 +1125,7 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
       if (prev.video) URL.revokeObjectURL(prev.video.url);
       return {
         ...prev,
-        video: { id: "video", url: URL.createObjectURL(f), name: f.name },
+        video: { id: "video", url: URL.createObjectURL(f), name: f.name, file: f },
       };
     });
   }
@@ -1231,6 +1235,13 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
     }
     if (form.mapLink.trim()) autoParts.push(`Map: ${form.mapLink.trim()}`);
     const pin = parseLatLng(form.mapLink);
+    const toWizardMedia = (m: MediaItem): WizardMediaFile => ({ id: m.id, file: m.file, previewUrl: m.url });
+    // Real uploads (see post-property.service.ts's uploadAll) come from these fields, not
+    // form.photos/form.video directly — without this mapping submitProperty() has nothing to
+    // upload, no matter what the user picked in the Photos step.
+    const cover = form.photos[0] ? toWizardMedia(form.photos[0]) : null;
+    const gallery = form.photos.slice(1).map(toWizardMedia);
+    const video = form.video ? toWizardMedia(form.video) : null;
     const description = [
       form.description.trim(),
       ...autoParts,
@@ -1265,6 +1276,9 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
       negotiable: form.negotiable,
       title: `${bhkLabel}${form.propertyType} for ${dealLabel} in ${form.projectName.trim() || cityName}`,
       description,
+      cover,
+      gallery,
+      video,
       // For an agent listing, the owner-facing name/phone is the actual owner, not the agent.
       ownerName: role === "agent" && form.agentOwnerName.trim() ? form.agentOwnerName.trim() : form.name.trim(),
       ownerPhone:
@@ -1321,10 +1335,12 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
       }).catch(() => {});
       // buildProperty() hard-codes availableFrom "Immediate"; honour the picked date if any.
       if (rentLike && form.availableFrom) property.availableFrom = form.availableFrom;
-      // Mock submit doesn't upload media — splice in the local object URLs so the owner
-      // sees their own photos on the listing for the rest of the session.
-      if (form.photos.length) property.images = form.photos.map((p) => p.url);
-      if (form.video) property.videos = [form.video.url];
+      // Mock mode doesn't upload media at all, so property.images/videos come back empty —
+      // splice in the local object URLs so the owner at least sees their own photos for the
+      // rest of the session. Real (Firebase) mode already has genuine Storage URLs here from
+      // submitProperty()'s actual upload — never overwrite those with temporary blob: URLs.
+      if (!property.images.length && form.photos.length) property.images = form.photos.map((p) => p.url);
+      if (!property.videos?.length && form.video) property.videos = [form.video.url];
       // Owner opted into RENTLET's rental agreement service — flag it for the team.
       if (rentLike && form.wantAgreement) {
         notificationsService.push(
