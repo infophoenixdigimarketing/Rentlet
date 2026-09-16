@@ -30,7 +30,9 @@ const NAV_MENUS: { label: string; href: string; icon: LucideIcon; items: NavItem
       { label: "Villas", href: "/properties?listingType=rent&type=villa" },
       { label: "PG / Co-living", href: "/properties?type=pg,flatmate" },
       { label: "Flatmates", href: "/properties?type=flatmate" },
-      { label: "Commercial", href: "/properties?listingType=rent&type=office,shop,showroom,warehouse" },
+      { label: "Plots & Land", href: "/properties?listingType=rent&type=plot,land" },
+      { label: "Office Space", href: "/properties?listingType=rent&type=office" },
+      { label: "Shops & Warehouse", href: "/properties?listingType=rent&type=shop,showroom,warehouse" },
     ],
   },
   {
@@ -54,7 +56,9 @@ const NAV_MENUS: { label: string; href: string; icon: LucideIcon; items: NavItem
       { label: "Post a Villa", href: "/post-property" },
       { label: "Post PG / Co-living", href: "/post-property" },
       { label: "Post for Flatmates", href: "/post-property" },
-      { label: "Post Commercial", href: "/post-property" },
+      { label: "Post Plots & Land", href: "/post-property" },
+      { label: "Post Office Space", href: "/post-property" },
+      { label: "Post Shops & Warehouse", href: "/post-property" },
     ],
   },
   {
