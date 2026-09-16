@@ -57,21 +57,6 @@ export default function AdminLoginPage() {
           </Button>
         </form>
 
-        <button
-          type="button"
-          onClick={() => {
-            setEmail("admin@gmail.com");
-            setPassword("123456");
-            setError(null);
-          }}
-          className="mt-3 w-full rounded-lg border border-dashed border-border py-2 text-xs font-semibold text-brand-navy hover:bg-brand-navy-light/50"
-        >
-          Fill credentials
-        </button>
-
-        <p className="mt-5 text-center text-[11px] text-muted-foreground">
-          Console access: admin@gmail.com / 123456
-        </p>
       </div>
     </div>
   );
