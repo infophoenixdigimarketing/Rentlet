@@ -10,7 +10,6 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   signOut,
-  sendPasswordResetEmail,
   updateProfile as updateFirebaseDisplayName,
   updateEmail as updateFirebaseEmail,
   RecaptchaVerifier,
@@ -58,7 +57,12 @@ export interface AuthProvider {
    * `newUserRole` (from the register flow) sets the role when that account is first created.
    */
   loginWithGoogle(account?: GoogleDemoAccount, newUserRole?: UserRole): Promise<AuthUser>;
-  requestPasswordReset(email: string): Promise<void>;
+  /** Emails a 6-digit reset code to this address (if an account exists) — always resolves,
+   *  never reveals whether the account exists. */
+  sendPasswordResetOtp(email: string): Promise<void>;
+  /** Verifies the code and sets the new password in one step. Throws with a plain-English
+   *  message on failure. */
+  confirmPasswordReset(email: string, code: string, newPassword: string): Promise<void>;
   logout(): Promise<void>;
   updateProfile(patch: Partial<Pick<AuthUser, "name" | "email" | "phone">>): Promise<AuthUser>;
   /** Email a fresh 6-digit verification code to the signed-in user's address. */
@@ -285,9 +289,18 @@ class MockAuthProvider implements AuthProvider {
     return stripped;
   }
 
-  async requestPasswordReset(email: string): Promise<void> {
-    void email; // real transactional email (Phase 12: notifications.service.ts) will target this address
-    await delay(600);
+  async sendPasswordResetOtp(email: string): Promise<void> {
+    void email;
+    await delay(500);
+  }
+
+  async confirmPasswordReset(email: string, code: string, newPassword: string): Promise<void> {
+    const users = loadUsers();
+    const user = users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+    if (!user) throw new Error("Incorrect code. Try again."); // never confirm which emails exist
+    if (code !== DEMO_OTP) throw new Error("Invalid OTP. Use 123456 for this demo.");
+    user.password = newPassword;
+    saveUsers(users);
   }
 
   async logout(): Promise<void> {
@@ -653,11 +666,31 @@ class FirebaseAuthProvider implements AuthProvider {
     }
   }
 
-  async requestPasswordReset(email: string): Promise<void> {
-    try {
-      await sendPasswordResetEmail(getFirebaseAuth(), email);
-    } catch (e) {
-      throw new Error(friendlyAuthError(e));
+  // Custom 6-digit-code flow (api/auth/send-password-reset-otp + verify-password-reset-otp) —
+  // replaces Firebase's native link-only reset email so this also goes through
+  // lib/email/send-mail.ts (Brevo/Resend/Gmail), not Firebase's own mailer. No session needed
+  // (the user is logged out at this point), so these are plain unauthenticated requests.
+  async sendPasswordResetOtp(email: string): Promise<void> {
+    const res = await fetch("/api/auth/send-password-reset-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}) as { error?: string });
+      throw new Error(body.error || "Couldn't send the code.");
+    }
+  }
+
+  async confirmPasswordReset(email: string, code: string, newPassword: string): Promise<void> {
+    const res = await fetch("/api/auth/verify-password-reset-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code, newPassword }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}) as { error?: string });
+      throw new Error(body.error || "Couldn't reset your password.");
     }
   }
 

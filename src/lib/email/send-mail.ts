@@ -1,14 +1,16 @@
 import nodemailer from "nodemailer";
 
-// Shared transactional-mail sender for every auth email (OTP codes, welcome). Prefers Resend
-// (RESEND_API_KEY) — a dedicated transactional provider with none of a personal Gmail account's
-// daily/burst sending limits or disposable-domain flagging — and falls back to the existing
-// Gmail SMTP setup when no Resend key is configured, so nothing breaks before that key is added.
+// Shared transactional-mail sender for every auth email (OTP codes, welcome). Tries transports
+// in order — Brevo, then Resend, then Gmail SMTP — using whichever's API key is actually set, so
+// nothing breaks while you're mid-setup. Brevo (brevo.com, formerly Sendinblue) and Resend are
+// both dedicated transactional providers with none of a personal Gmail account's daily/burst
+// sending limits or disposable-domain flagging.
 //
-// To switch on Resend: sign up free at resend.com, verify a sending domain (or use their
-// onboarding@resend.dev sandbox address to start), grab an API key, and set:
-//   RESEND_API_KEY=re_...
-//   RESEND_FROM=Rentlet <onboarding@resend.dev>   (or your verified address, once you have one)
+// To switch on Brevo: sign up free at brevo.com -> Settings -> SMTP & API -> API Keys -> Create
+// a new API key, then set:
+//   BREVO_API_KEY=xkeysib-...
+//   BREVO_FROM_EMAIL=you@yourdomain.com   (must be a "Sender" you've verified in Brevo)
+//   BREVO_FROM_NAME=Rentlet                (optional, defaults to "Rentlet")
 export interface SendMailInput {
   to: string;
   subject: string;
@@ -16,9 +18,47 @@ export interface SendMailInput {
 }
 
 export async function sendMail(input: SendMailInput): Promise<boolean> {
+  const brevoKey = process.env.BREVO_API_KEY;
+  if (brevoKey) return sendViaBrevo(brevoKey, input);
+
   const resendKey = process.env.RESEND_API_KEY;
   if (resendKey) return sendViaResend(resendKey, input);
+
   return sendViaSmtp(input);
+}
+
+async function sendViaBrevo(apiKey: string, input: SendMailInput): Promise<boolean> {
+  const fromEmail = process.env.BREVO_FROM_EMAIL;
+  const fromName = process.env.BREVO_FROM_NAME || "Rentlet";
+  if (!fromEmail) {
+    console.error("sendMail (Brevo) failed: BREVO_FROM_EMAIL is not set (must be a verified Brevo sender).");
+    return false;
+  }
+  try {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        sender: { email: fromEmail, name: fromName },
+        to: [{ email: input.to }],
+        subject: input.subject,
+        htmlContent: input.html,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error("sendMail (Brevo) failed:", res.status, body);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("sendMail (Brevo) failed:", err);
+    return false;
+  }
 }
 
 async function sendViaResend(apiKey: string, input: SendMailInput): Promise<boolean> {
@@ -76,8 +116,12 @@ async function sendViaSmtp(input: SendMailInput): Promise<boolean> {
   }
 }
 
-/** True once either transport is actually configured — lets a route return a clean 503 instead
+/** True once any transport is actually configured — lets a route return a clean 503 instead
  *  of attempting a send that can only fail. */
 export function isMailConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY) || Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  return (
+    Boolean(process.env.BREVO_API_KEY && process.env.BREVO_FROM_EMAIL) ||
+    Boolean(process.env.RESEND_API_KEY) ||
+    Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
+  );
 }
