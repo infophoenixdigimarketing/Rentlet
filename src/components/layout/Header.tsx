@@ -16,6 +16,12 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
+// TEMPORARY: hides the header's "Sign Up" button while email verification is unreliable (Gmail
+// SMTP / Resend sandbox issues), so new visitors don't land on a signup flow that can't send
+// them a code. Login still works as normal — this only hides the entry point to /register.
+// Flip back to true once signup is confirmed reliable again.
+const SHOW_SIGNUP_BUTTON = false;
+
 // Top nav: Rent / Buy / Sell, each opening a property-type submenu. Every href goes to the real,
 // working /properties search (filtered) or /post-property — no 404 routes.
 type NavItem = { label: string; href: string };
@@ -155,9 +161,11 @@ export function Header() {
               <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
                 Login
               </Link>
-              <Link href="/register" className={cn(buttonVariants({ variant: "primary", size: "sm" }))}>
-                Sign Up
-              </Link>
+              {SHOW_SIGNUP_BUTTON && (
+                <Link href="/register" className={cn(buttonVariants({ variant: "primary", size: "sm" }))}>
+                  Sign Up
+                </Link>
+              )}
             </>
           )}
           <LanguageMenu />
@@ -180,9 +188,11 @@ export function Header() {
               <Link href="/login" className="rounded-full border border-border px-2.5 py-1.5 text-xs font-bold text-foreground/85 hover:bg-muted">
                 Login
               </Link>
-              <Link href="/register" className="rounded-full bg-brand-orange px-2.5 py-1.5 text-xs font-bold text-white hover:bg-brand-orange-dark">
-                Sign Up
-              </Link>
+              {SHOW_SIGNUP_BUTTON && (
+                <Link href="/register" className="rounded-full bg-brand-orange px-2.5 py-1.5 text-xs font-bold text-white hover:bg-brand-orange-dark">
+                  Sign Up
+                </Link>
+              )}
             </>
           )}
           <button
@@ -353,7 +363,7 @@ export function Header() {
             </Link>
           </div>
 
-          {!user && (
+          {!user && SHOW_SIGNUP_BUTTON && (
             <div className="mt-2 px-1">
               <Link
                 href="/register"
