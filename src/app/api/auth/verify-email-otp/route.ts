@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminAuth, getAdminDb, isFirebaseAdminConfigured } from "@/lib/firebase/admin";
+import { sendWelcomeEmail } from "@/lib/email/welcome-email";
 
 const MAX_ATTEMPTS = 5;
 
@@ -54,5 +55,20 @@ export async function POST(req: Request) {
   await getAdminAuth().updateUser(uid, { emailVerified: true });
   await ref.delete();
 
-  return NextResponse.json({ ok: true });
+  // Send the welcome email right here, server-side, atomically with verification succeeding —
+  // not as a second client-triggered fetch afterward (that extra network hop, dependent on the
+  // browser tab staying alive, is exactly what let this go silently missing before). Best-effort:
+  // a mail hiccup must never turn a successful verification into an error response.
+  try {
+    const record = await getAdminAuth().getUser(uid);
+    if (record.email) {
+      const firstName = (record.displayName || "there").trim().split(" ")[0];
+      const sent = await sendWelcomeEmail(record.email, firstName);
+      return NextResponse.json({ ok: true, welcomeEmailSent: sent });
+    }
+  } catch (err) {
+    console.error("verify-email-otp: welcome email failed", err);
+  }
+
+  return NextResponse.json({ ok: true, welcomeEmailSent: false });
 }

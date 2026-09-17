@@ -7,8 +7,6 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { authService } from "@/lib/services/auth.service";
-import { useAuth } from "@/lib/auth";
-import { notifyLogin } from "@/lib/notify-login";
 import { toast } from "@/lib/toast";
 
 /** Shown wherever an email/password account must confirm its address before continuing
@@ -26,7 +24,6 @@ export function EmailVerifyGate({
   bare?: boolean;
 }) {
   const router = useRouter();
-  const { user } = useAuth();
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
@@ -68,15 +65,8 @@ export function EmailVerifyGate({
       const verified = await authService.verifyEmailOtp(code);
       if (verified) {
         toast("Email confirmed! Welcome to Rentlet.");
-        // Register-by-email is the one signup path that didn't already send the "Welcome to
-        // Rentlet" email at account creation (Google/Phone do, right when the account is made —
-        // see GoogleButton.tsx / PhoneOtpForm.tsx). This is its equivalent moment: the address
-        // is now actually confirmed, which is the right time to send it here. Awaited (unlike
-        // the other two callers) so a failed send is at least visible instead of vanishing —
-        // still never blocks navigation.
-        notifyLogin({ email, name: user?.name?.split(" ")[0] ?? "there", isNewAccount: true }).then((sent) => {
-          if (!sent) toast("Confirmed — but the welcome email couldn't be sent. Nothing to worry about.", "info");
-        });
+        // The welcome email is now sent server-side, atomically with verification succeeding
+        // (see api/auth/verify-email-otp/route.ts) — nothing to trigger client-side here anymore.
         router.push(next);
       } else {
         setError("Incorrect code. Try again.");
