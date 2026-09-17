@@ -30,7 +30,6 @@ const NAV_MENUS: { label: string; href: string; icon: LucideIcon; items: NavItem
       { label: "Villas", href: "/properties?listingType=rent&type=villa" },
       { label: "PG / Co-living", href: "/properties?type=pg,flatmate" },
       { label: "Flatmates", href: "/properties?type=flatmate" },
-      { label: "Plots & Land", href: "/properties?listingType=rent&type=plot,land" },
       { label: "Office Space", href: "/properties?listingType=rent&type=office" },
       { label: "Shops & Warehouse", href: "/properties?listingType=rent&type=shop,showroom,warehouse" },
     ],
