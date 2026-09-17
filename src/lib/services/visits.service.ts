@@ -9,6 +9,7 @@ import { notificationsService } from "@/lib/services/notifications.service";
 import { isFirestoreEnabled } from "@/lib/firebase/config";
 import { getDb } from "@/lib/firebase/client";
 import { createMockPersistence, mockId } from "@/lib/services/mock-persistence";
+import { EMPTY_ARRAY } from "@/lib/utils";
 import type { OwnerVisit, VisitStatus } from "@/types/dashboard";
 
 export interface CreateVisitInput {
@@ -202,13 +203,18 @@ class FirebaseVisitsService implements VisitsService {
 
   getMine(userId: string): OwnerVisit[] {
     if (!this.mineUnsubs[userId]) {
+      // Seed with a stable reference *before* Firestore's first snapshot arrives — returning a
+      // fresh `[]` literal here every render breaks useSyncExternalStore's "getSnapshot must be
+      // cached" contract and crashes with "Maximum update depth exceeded" on first open (see
+      // EMPTY_ARRAY in lib/utils.ts). The real array replaces this once data comes back.
+      this.mineSnapshots[userId] = EMPTY_ARRAY;
       const q = query(collection(getDb(), COLLECTION), where("requesterId", "==", userId), orderBy("date", "desc"));
       this.mineUnsubs[userId] = onSnapshot(q, (snap) => {
         this.mineSnapshots[userId] = snap.docs.map((d) => toVisit(d.id, d.data()));
         this.emit();
       });
     }
-    return this.mineSnapshots[userId] ?? [];
+    return this.mineSnapshots[userId] ?? EMPTY_ARRAY;
   }
 
   subscribe(listener: () => void) {

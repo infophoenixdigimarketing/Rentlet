@@ -71,6 +71,10 @@ export interface Property {
   availableFrom: string | null;
   /** PG/flatmate listings only — who the room/bed is for. */
   genderPreference?: "male" | "female" | "any" | null;
+  /** Plot/Land listings only. */
+  landType?: "residential" | "commercial" | "agricultural" | "industrial" | null;
+  roadWidthFt?: number | null;
+  boundaryWall?: boolean;
 
   amenities: string[];
   images: string[];

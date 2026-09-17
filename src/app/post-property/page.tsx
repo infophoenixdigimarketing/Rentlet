@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -23,10 +23,10 @@ import {
   Layers,
   Castle,
   Hotel,
-  DoorOpen,
   Trees,
   BedDouble,
   Store,
+  LandPlot,
   ImagePlus,
   Plus,
   Video,
@@ -40,7 +40,8 @@ import { PageLoading } from "@/components/ui/PageLoading";
 import { EmailVerifyGate } from "@/components/auth/EmailVerifyGate";
 import { useAuth } from "@/lib/auth";
 import { authService } from "@/lib/services/auth.service";
-import { submitProperty } from "@/lib/services/post-property.service";
+import { submitProperty, updateProperty } from "@/lib/services/post-property.service";
+import { propertyRepository } from "@/lib/services/properties.service";
 import { notificationsService } from "@/lib/services/notifications.service";
 import { allCities } from "@/lib/data/cities";
 import { toast } from "@/lib/toast";
@@ -56,13 +57,23 @@ import type { AuthUser } from "@/types/user";
  *  browse but not post — it has to sign in with a lister account.
  * ------------------------------------------------------------------ */
 export default function PostPropertyPage() {
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <PostPropertyPageInner />
+    </Suspense>
+  );
+}
+
+function PostPropertyPageInner() {
   const { user, loading } = useAuth();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
   // Don't flash the OTP landing form while a real session is still being confirmed on refresh.
   if (loading) return <PageLoading />;
   if (!user) return <PostPropertyLanding />;
   if (user.role === "tenant" || user.role === "buyer") return <ListerOnlyGate />;
   if (user.email && !user.emailVerified) return <EmailVerifyGate email={user.email} next="/post-property" />;
-  return <PostPropertyWizard key={user.id} user={user} />;
+  return <PostPropertyWizard key={`${user.id}-${editId ?? "new"}`} user={user} editId={editId} />;
 }
 
 function ListerOnlyGate() {
@@ -465,10 +476,10 @@ const PROPERTY_TYPES: { label: string; icon: LucideIcon; tint: string }[] = [
   { label: "Independent Floor", icon: Layers, tint: "bg-violet-50 text-violet-600" },
   { label: "Villa", icon: Castle, tint: "bg-amber-50 text-amber-600" },
   { label: "Penthouse", icon: Hotel, tint: "bg-rose-50 text-rose-600" },
-  { label: "Studio", icon: DoorOpen, tint: "bg-cyan-50 text-cyan-600" },
   { label: "Farm House", icon: Trees, tint: "bg-green-50 text-green-600" },
   { label: "PG", icon: BedDouble, tint: "bg-fuchsia-50 text-fuchsia-600" },
   { label: "Commercial", icon: Store, tint: "bg-orange-50 text-orange-600" },
+  { label: "Land", icon: LandPlot, tint: "bg-lime-50 text-lime-700" },
 ];
 
 // Card label -> the PropertyType the rest of the app understands.
@@ -479,11 +490,72 @@ const CATEGORY_FROM_LABEL: Record<string, PropertyType> = {
   "Independent Floor": "independent_house",
   Villa: "villa",
   Penthouse: "apartment",
-  Studio: "apartment",
   "Farm House": "villa",
   PG: "pg",
   Commercial: "office",
+  Land: "plot",
 };
+
+// Reverse of the above, for pre-filling the wizard when editing an existing listing — every
+// PropertyType this tile picker can produce maps back to one representative label. Flatmate
+// listings have no tile here at all (this picker never creates them), so editing one is
+// intentionally unsupported for now rather than silently reclassifying it.
+const LABEL_FROM_CATEGORY: Partial<Record<PropertyType, string>> = {
+  apartment: "Apartment",
+  independent_house: "Independent House",
+  villa: "Villa",
+  pg: "PG",
+  office: "Commercial",
+  shop: "Commercial",
+  showroom: "Commercial",
+  warehouse: "Commercial",
+  plot: "Land",
+  land: "Land",
+};
+const FURNISHING_LABEL_FROM_VALUE: Record<Furnishing, string> = {
+  unfurnished: "Unfurnished",
+  semi_furnished: "Semi Furnished",
+  fully_furnished: "Fully Furnished",
+};
+
+/** Reverse-maps a saved listing into the wizard's form shape so "Edit" opens pre-filled.
+ *  Returns null for categories this wizard can't represent (Plot/Land, Flatmate) — the caller
+ *  shows a "not supported yet" message instead of mis-categorizing the listing. */
+function propertyToFormPatch(p: Property): Partial<FormState> | null {
+  const label = LABEL_FROM_CATEGORY[p.propertyType];
+  if (!label) return null;
+
+  const parkingAmenities = new Set(["Bike Parking", "Car Parking"]);
+  const hasBike = p.amenities.includes("Bike Parking");
+  const hasCar = p.amenities.includes("Car Parking");
+
+  return {
+    lookingTo: p.listingType === "sale" ? "Sell" : "Rent",
+    name: p.ownerName,
+    city: p.city,
+    propertyType: label,
+    location: p.locality,
+    bhk: p.bedrooms == null ? "" : p.bedrooms === 0 ? "1 RK" : p.bedrooms >= 10 ? "10+ BHK" : `${p.bedrooms} BHK`,
+    bathrooms: p.bathrooms != null ? String(p.bathrooms) : "",
+    balconies: p.balconies != null ? String(p.balconies) : "",
+    floor: p.floor != null ? String(p.floor) : "",
+    totalFloors: p.totalFloors != null ? String(p.totalFloors) : "",
+    propertyAge: p.propertyAge ?? "",
+    facing: p.facing ?? "",
+    builtUpArea: p.builtUpArea != null ? String(p.builtUpArea) : "",
+    furnishing: p.furnishing ? FURNISHING_LABEL_FROM_VALUE[p.furnishing] : "",
+    availableFrom: p.availableFrom ?? "",
+    description: p.description,
+    deposit: p.deposit != null ? String(p.deposit) : "",
+    expectedPrice: String((p.listingType === "sale" ? p.price : p.rent) ?? ""),
+    maintenance: p.maintenance != null ? String(p.maintenance) : "",
+    negotiable: p.negotiable,
+    parking: hasBike && hasCar ? "Bike & Car" : hasCar ? "Car" : hasBike ? "Bike" : "None",
+    amenities: p.amenities.filter((a) => !parkingAmenities.has(a)),
+    // Terms were already accepted when this listing was first created.
+    agreeTerms: true,
+  };
+}
 
 const STEPS = ["Property Details", "Photos & Schedule", "Price Details"] as const;
 
@@ -527,6 +599,8 @@ type FormState = {
   projectName: string;
   location: string;
   bhk: string;
+  /** PG only — rooms available, shown instead of BHK. */
+  roomCount: string;
   bathrooms: string;
   balconies: string;
   waterSupply: string;
@@ -866,11 +940,13 @@ function LocalityInput({
   );
 }
 
-const BHK_OPTIONS = ["1 RK", "1 BHK", "2 BHK", "3 BHK", "4 BHK", "4+ BHK"];
+const BHK_OPTIONS = ["1 RK", ...Array.from({ length: 9 }, (_, i) => `${i + 1} BHK`), "10+ BHK"];
+// PG only — rooms available, not BHK.
+const ROOM_OPTIONS = [...Array.from({ length: 19 }, (_, i) => String(i + 1)), "20+"];
 const FLOOR_OPTIONS = ["Basement", "Lower Ground", "Ground", ...Array.from({ length: 40 }, (_, i) => String(i + 1))];
 const AGE_OPTIONS = ["Under construction", "0-1 years", "1-5 years", "5-10 years", "10+ years"];
-const BATHROOM_OPTIONS = ["1", "2", "3", "4", "5+"];
-const BALCONY_OPTIONS = ["0", "1", "2", "3", "4+"];
+const BATHROOM_OPTIONS = [...Array.from({ length: 7 }, (_, i) => String(i + 1)), "8+"];
+const BALCONY_OPTIONS = [...Array.from({ length: 6 }, (_, i) => String(i)), "6+"];
 const WATER_SUPPLY_OPTIONS = ["Municipal", "Borewell", "Both"];
 const CONDITION_OPTIONS = ["Ready to Move", "Newly Renovated", "Well Maintained", "Needs Renovation"];
 const FURNISHING_OPTIONS = ["Unfurnished", "Semi Furnished", "Fully Furnished"];
@@ -1013,9 +1089,16 @@ function readIntent(): Partial<PostIntent> {
   }
 }
 
-function PostPropertyWizard({ user }: { user: AuthUser }) {
+function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string | null }) {
+  const router = useRouter();
   const [intent] = useState<Partial<PostIntent>>(() => readIntent());
   const [step, setStep] = useState(0);
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  // null = not editing / not loaded yet, "loading", "unsupported" (category this wizard can't
+  // represent), "denied" (not this user's listing), or "ready".
+  const [editState, setEditState] = useState<"loading" | "unsupported" | "denied" | "ready" | null>(
+    editId ? "loading" : null
+  );
   // Each step renders fresh content at the top of the form — without this, advancing (or
   // jumping back via the rail) leaves the scroll position wherever it was on the last step,
   // so the next step can open off-screen until the user manually scrolls up.
@@ -1030,6 +1113,7 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
     projectName: "",
     location: "",
     bhk: "",
+    roomCount: "",
     bathrooms: "",
     balconies: "",
     waterSupply: "",
@@ -1072,6 +1156,30 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
   const [submitted, setSubmitted] = useState<Property | null>(null);
   const [customAmenity, setCustomAmenity] = useState("");
 
+  // Editing an existing listing — load it once, verify ownership, and pre-fill the form.
+  useEffect(() => {
+    if (!editId) return;
+    let cancelled = false;
+    propertyRepository.getById(editId).then((property) => {
+      if (cancelled) return;
+      if (!property || property.ownerId !== user.id) {
+        setEditState("denied");
+        return;
+      }
+      const patch = propertyToFormPatch(property);
+      if (!patch) {
+        setEditState("unsupported");
+        return;
+      }
+      setEditingProperty(property);
+      setForm((prev) => ({ ...prev, ...patch }));
+      setEditState("ready");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [editId, user.id]);
+
   // Owner / Agent / Builder — drives the intro banner + which extra fields show in step 1.
   const role = user.role;
   const roleIntro =
@@ -1098,6 +1206,11 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
 
   // Rent and Lease share the same fields (monthly amount, deposit, availability, tenants).
   const rentLike = form.lookingTo === "Rent" || form.lookingTo === "Lease";
+  // Land has no bedrooms, bathrooms, floors, water supply, furnishing or parking — a plot is
+  // just a plot. Only Plot Area (relabelled Built Up Area) and Facing carry over.
+  const isLand = form.propertyType === "Land";
+  // PG isn't measured in BHK — a room/bed count fits how PGs are actually described.
+  const isPG = form.propertyType === "PG";
 
   function addPhotos(files: FileList | null) {
     if (!files?.length) return;
@@ -1203,6 +1316,7 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
     const autoParts = [
       `${bhkLabel}${form.propertyType} available for ${dealLabel.toLowerCase()} in ${locality}, ${cityName}.`,
     ];
+    if (isPG && form.roomCount) autoParts.push(`${form.roomCount} room${form.roomCount === "1" ? "" : "s"} available.`);
     if (isRent && form.membersAllowed) autoParts.push(`Suitable for up to ${form.membersAllowed} members.`);
     if (form.lookingTo === "Lease" && form.leaseYears)
       autoParts.push(`Lease term: ${form.leaseYears} year${form.leaseYears === "1" ? "" : "s"}.`);
@@ -1298,8 +1412,10 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
       if (!form.name.trim()) return toast("Enter your name to continue.", "error");
       if (!form.city.trim()) return toast("Search and pick a city to continue.", "error");
       if (!form.propertyType) return toast("Choose a property type to continue.", "error");
-      if (!form.bhk) return toast("Choose a BHK type to continue.", "error");
-      if (!form.builtUpArea.trim()) return toast("Enter the built-up area to continue.", "error");
+      if (isPG && !form.roomCount) return toast("Choose the number of rooms to continue.", "error");
+      if (!isLand && !isPG && !form.bhk) return toast("Choose a BHK type to continue.", "error");
+      if (!form.builtUpArea.trim())
+        return toast(isLand ? "Enter the plot area to continue." : "Enter the built-up area to continue.", "error");
       setStep(1);
       return;
     }
@@ -1308,12 +1424,26 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
       return;
     }
     if (!form.expectedPrice.trim()) return toast("Enter an expected price to continue.", "error");
-    if (form.lookingTo === "Lease" && !form.leaseYears.trim())
+    if (!isLand && form.lookingTo === "Lease" && !form.leaseYears.trim())
       return toast("Enter the lease duration in years to continue.", "error");
     if (!form.agreeTerms)
       return toast("Please accept the Terms & Conditions before submitting.", "error");
 
     setSubmitting(true);
+
+    if (editingProperty) {
+      try {
+        const wizardState = buildWizardState();
+        await updateProperty(editingProperty.id, wizardState, user, editingProperty);
+        toast("Listing updated.");
+        router.push("/owner/properties");
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Couldn't save changes. Try again.", "error");
+        setSubmitting(false);
+      }
+      return;
+    }
+
     try {
       const wizardState = buildWizardState();
       const property = await submitProperty(wizardState, user);
@@ -1372,6 +1502,35 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
     return "pending";
   }
 
+  if (editState === "loading") return <PageLoading />;
+  if (editState === "denied") {
+    return (
+      <div className="container-rentlet flex flex-col items-center gap-3 py-20 text-center">
+        <h1 className="text-lg font-bold text-foreground">Listing not found</h1>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          It may have been deleted, or it doesn&apos;t belong to your account.
+        </p>
+        <Link href="/owner/properties" className={cn(buttonVariants({ variant: "primary", size: "md" }))}>
+          Back to My Properties
+        </Link>
+      </div>
+    );
+  }
+  if (editState === "unsupported") {
+    return (
+      <div className="container-rentlet flex flex-col items-center gap-3 py-20 text-center">
+        <h1 className="text-lg font-bold text-foreground">Can&apos;t edit this listing yet</h1>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          Editing Flatmate listings from here isn&apos;t supported yet — contact RENTLET support
+          to update this one.
+        </p>
+        <Link href="/owner/properties" className={cn(buttonVariants({ variant: "primary", size: "md" }))}>
+          Back to My Properties
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="container-rentlet py-6 pb-24">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_1fr]">
@@ -1384,8 +1543,12 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
             <ArrowLeft className="h-4 w-4" /> Go back
           </Link>
 
-          <h1 className="mt-4 text-2xl font-extrabold text-foreground">Post your property</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Sell or rent your property</p>
+          <h1 className="mt-4 text-2xl font-extrabold text-foreground">
+            {editingProperty ? "Edit your property" : "Post your property"}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {editingProperty ? editingProperty.title : "Sell or rent your property"}
+          </p>
 
           <div className="mt-4">
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -1563,7 +1726,7 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
                   <label className="block">
                     <span className="text-sm font-semibold text-foreground">
                       {role === "agent" ? "Your Name (agent)" : role === "builder" ? "Your Name (builder rep)" : "Your Name"}
-                      <span className="text-red-500"> *</span>
+                      <span className="text-brand-orange"> *</span>
                     </span>
                     <input
                       type="text"
@@ -1675,7 +1838,9 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
 
                   {/* City */}
                   <div className="block">
-                    <span className="text-sm font-semibold text-foreground">City</span>
+                    <span className="text-sm font-semibold text-foreground">
+                      City<span className="text-brand-orange"> *</span>
+                    </span>
                     <div className="mt-1">
                       <CityPicker value={form.city} onChange={(c) => set("city", c)} />
                     </div>
@@ -1683,7 +1848,9 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
 
                   {/* Property Type */}
                   <div>
-                    <p className="text-sm font-semibold text-foreground">Property Type</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      Property Type<span className="text-brand-orange"> *</span>
+                    </p>
                     <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                       {PROPERTY_TYPES.map((t) => {
                         const active = form.propertyType === t.label;
@@ -1734,66 +1901,83 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
                     />
                   </Field>
 
-                  {/* BHK */}
-                  <Field label="BHK Type" required>
-                    <Select
-                      value={form.bhk}
-                      onChange={(v) => set("bhk", v)}
-                      options={BHK_OPTIONS}
-                      placeholder="Select BHK"
-                    />
-                  </Field>
+                  {!isLand && (
+                    <>
+                      {/* BHK — PG is measured in rooms available, not BHK */}
+                      {isPG ? (
+                        <Field label="Number of Rooms" required>
+                          <Select
+                            value={form.roomCount}
+                            onChange={(v) => set("roomCount", v)}
+                            options={ROOM_OPTIONS}
+                            placeholder="Select rooms"
+                          />
+                        </Field>
+                      ) : (
+                        <Field label="BHK Type" required>
+                          <Select
+                            value={form.bhk}
+                            onChange={(v) => set("bhk", v)}
+                            options={BHK_OPTIONS}
+                            placeholder="Select BHK"
+                          />
+                        </Field>
+                      )}
 
-                  {/* Bathrooms + balconies */}
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <Field label="Bathrooms">
-                      <Select
-                        value={form.bathrooms}
-                        onChange={(v) => set("bathrooms", v)}
-                        options={BATHROOM_OPTIONS}
-                        placeholder="Select"
-                      />
-                    </Field>
-                    <Field label="Balconies">
-                      <Select
-                        value={form.balconies}
-                        onChange={(v) => set("balconies", v)}
-                        options={BALCONY_OPTIONS}
-                        placeholder="Select"
-                      />
-                    </Field>
-                  </div>
+                      {/* Bathrooms + balconies */}
+                      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <Field label="Bathrooms">
+                          <Select
+                            value={form.bathrooms}
+                            onChange={(v) => set("bathrooms", v)}
+                            options={BATHROOM_OPTIONS}
+                            placeholder="Select"
+                          />
+                        </Field>
+                        <Field label="Balconies">
+                          <Select
+                            value={form.balconies}
+                            onChange={(v) => set("balconies", v)}
+                            options={BALCONY_OPTIONS}
+                            placeholder="Select"
+                          />
+                        </Field>
+                      </div>
 
-                  {/* Floor + total floors */}
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <Field label="Floor">
-                      <Select
-                        value={form.floor}
-                        onChange={(v) => set("floor", v)}
-                        options={FLOOR_OPTIONS}
-                        placeholder="Select floor"
-                      />
-                    </Field>
-                    <Field label="Total Floors">
-                      <Select
-                        value={form.totalFloors}
-                        onChange={(v) => set("totalFloors", v)}
-                        options={FLOOR_OPTIONS}
-                        placeholder="Select total"
-                      />
-                    </Field>
-                  </div>
+                      {/* Floor + total floors */}
+                      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <Field label="Floor">
+                          <Select
+                            value={form.floor}
+                            onChange={(v) => set("floor", v)}
+                            options={FLOOR_OPTIONS}
+                            placeholder="Select floor"
+                          />
+                        </Field>
+                        <Field label="Total Floors">
+                          <Select
+                            value={form.totalFloors}
+                            onChange={(v) => set("totalFloors", v)}
+                            options={FLOOR_OPTIONS}
+                            placeholder="Select total"
+                          />
+                        </Field>
+                      </div>
+                    </>
+                  )}
 
-                  {/* Age + facing */}
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <Field label="Property Age">
-                      <Select
-                        value={form.propertyAge}
-                        onChange={(v) => set("propertyAge", v)}
-                        options={AGE_OPTIONS}
-                        placeholder="Select age"
-                      />
-                    </Field>
+                  {/* Age + facing — land skips Age (doesn't apply) and just gets Facing */}
+                  <div className={cn("grid grid-cols-1 gap-6", !isLand && "sm:grid-cols-2")}>
+                    {!isLand && (
+                      <Field label="Property Age">
+                        <Select
+                          value={form.propertyAge}
+                          onChange={(v) => set("propertyAge", v)}
+                          options={AGE_OPTIONS}
+                          placeholder="Select age"
+                        />
+                      </Field>
+                    )}
                     <Field label="Facing">
                       <Select
                         value={form.facing}
@@ -1804,28 +1988,32 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
                     </Field>
                   </div>
 
-                  {/* Water supply + current condition */}
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <Field label="Water Supply">
-                      <Select
-                        value={form.waterSupply}
-                        onChange={(v) => set("waterSupply", v)}
-                        options={WATER_SUPPLY_OPTIONS}
-                        placeholder="Select source"
-                      />
-                    </Field>
-                    <Field label="Current Property Condition">
-                      <Select
-                        value={form.condition}
-                        onChange={(v) => set("condition", v)}
-                        options={CONDITION_OPTIONS}
-                        placeholder="Select condition"
-                      />
-                    </Field>
-                  </div>
+                  {!isLand && (
+                    <>
+                      {/* Water supply + current condition */}
+                      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        <Field label="Water Supply">
+                          <Select
+                            value={form.waterSupply}
+                            onChange={(v) => set("waterSupply", v)}
+                            options={WATER_SUPPLY_OPTIONS}
+                            placeholder="Select source"
+                          />
+                        </Field>
+                        <Field label="Current Property Condition">
+                          <Select
+                            value={form.condition}
+                            onChange={(v) => set("condition", v)}
+                            options={CONDITION_OPTIONS}
+                            placeholder="Select condition"
+                          />
+                        </Field>
+                      </div>
+                    </>
+                  )}
 
-                  {/* Built-up area */}
-                  <Field label="Built Up Area" required>
+                  {/* Built-up area (Plot Area for land) */}
+                  <Field label={isLand ? "Plot Area (sq.ft)" : "Built Up Area"} required>
                     <span className="flex items-center gap-2 border-b border-border focus-within:border-brand-navy">
                       <input
                         type="text"
@@ -1855,23 +2043,27 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
                     </Field>
                   )}
 
-                  {/* Furnishing */}
-                  <Field label="Furnishing">
-                    <PillGroup
-                      value={form.furnishing}
-                      onChange={(v) => set("furnishing", v)}
-                      options={FURNISHING_OPTIONS}
-                    />
-                  </Field>
+                  {!isLand && (
+                    <>
+                      {/* Furnishing */}
+                      <Field label="Furnishing">
+                        <PillGroup
+                          value={form.furnishing}
+                          onChange={(v) => set("furnishing", v)}
+                          options={FURNISHING_OPTIONS}
+                        />
+                      </Field>
 
-                  {/* Parking */}
-                  <Field label="Parking">
-                    <PillGroup
-                      value={form.parking}
-                      onChange={(v) => set("parking", v)}
-                      options={PARKING_OPTIONS}
-                    />
-                  </Field>
+                      {/* Parking */}
+                      <Field label="Parking">
+                        <PillGroup
+                          value={form.parking}
+                          onChange={(v) => set("parking", v)}
+                          options={PARKING_OPTIONS}
+                        />
+                      </Field>
+                    </>
+                  )}
 
                   {/* Available from + preferred tenants — rentals only */}
                   {rentLike && (
@@ -2157,14 +2349,17 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
                 </div>
               ) : (
                 <div className="mt-6 max-w-2xl space-y-5">
-                  {/* Expected price / rent / lease amount */}
+                  {/* Expected price / rent / lease amount — land is a flat one-time price,
+                      none of the rent/lease/deposit/maintenance breakdown applies. */}
                   <Field
                     label={
-                      form.lookingTo === "Lease"
-                        ? "Expected Lease Amount"
-                        : rentLike
-                          ? "Expected Monthly Rent"
-                          : "Expected Price"
+                      isLand
+                        ? "Price"
+                        : form.lookingTo === "Lease"
+                          ? "Expected Lease Amount"
+                          : rentLike
+                            ? "Expected Monthly Rent"
+                            : "Expected Price"
                     }
                     required
                   >
@@ -2174,71 +2369,75 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
                     />
                   </Field>
 
-                  {/* Lease duration — lease only */}
-                  {form.lookingTo === "Lease" && (
-                    <Field label="Lease Duration (Years)" required>
-                      <span className="flex items-center gap-2 border-b border-border focus-within:border-brand-navy">
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          value={form.leaseYears}
-                          onChange={(e) =>
-                            set("leaseYears", e.target.value.replace(/[^\d]/g, "").slice(0, 2))
-                          }
-                          placeholder="e.g. 2"
-                          className="w-full border-0 bg-transparent py-2 text-base text-foreground outline-none placeholder:text-muted-foreground/70"
-                        />
-                        <span className="shrink-0 text-sm font-semibold text-muted-foreground">
-                          {form.leaseYears === "1" ? "year" : "years"}
-                        </span>
-                      </span>
-                    </Field>
-                  )}
-
-                  {/* Security deposit / lease deposit — rentals only */}
-                  {rentLike && (
-                    <Field label={form.lookingTo === "Lease" ? "Deposit Amount" : "Security Deposit"}>
-                      <MoneyInput value={form.deposit} onChange={(v) => set("deposit", v)} />
-                    </Field>
-                  )}
-
-                  {/* Rental agreement add-on — rentals only */}
-                  {rentLike && (
-                    <div className="rounded-2xl border border-brand-navy/15 bg-brand-navy-light/50 p-4">
-                      <label className="flex items-start gap-2.5 text-sm text-foreground">
-                        <input
-                          type="checkbox"
-                          checked={form.wantAgreement}
-                          onChange={(e) => set("wantAgreement", e.target.checked)}
-                          className="mt-0.5 h-4 w-4 rounded border-border accent-brand-navy"
-                        />
-                        <span>
-                          <span className="font-semibold">Get the rental agreement done by RENTLET</span>
-                          <span className="mt-0.5 block text-xs text-muted-foreground">
-                            A lawyer-verified agreement, e-stamped and delivered. A manager calls you
-                            once a tenant is finalised — nothing charged now.{" "}
-                            <a
-                              href="/rental-agreement"
-                              target="_blank"
-                              rel="noreferrer"
-                              className="font-semibold text-brand-navy underline"
-                            >
-                              Learn more
-                            </a>
+                  {!isLand && (
+                    <>
+                      {/* Lease duration — lease only */}
+                      {form.lookingTo === "Lease" && (
+                        <Field label="Lease Duration (Years)" required>
+                          <span className="flex items-center gap-2 border-b border-border focus-within:border-brand-navy">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={form.leaseYears}
+                              onChange={(e) =>
+                                set("leaseYears", e.target.value.replace(/[^\d]/g, "").slice(0, 2))
+                              }
+                              placeholder="e.g. 2"
+                              className="w-full border-0 bg-transparent py-2 text-base text-foreground outline-none placeholder:text-muted-foreground/70"
+                            />
+                            <span className="shrink-0 text-sm font-semibold text-muted-foreground">
+                              {form.leaseYears === "1" ? "year" : "years"}
+                            </span>
                           </span>
-                        </span>
-                      </label>
-                    </div>
-                  )}
+                        </Field>
+                      )}
 
-                  {/* Maintenance */}
-                  <Field label="Maintenance (monthly)">
-                    <MoneyInput
-                      value={form.maintenance}
-                      onChange={(v) => set("maintenance", v)}
-                      placeholder="Optional"
-                    />
-                  </Field>
+                      {/* Security deposit / lease deposit — rentals only */}
+                      {rentLike && (
+                        <Field label={form.lookingTo === "Lease" ? "Deposit Amount" : "Security Deposit"}>
+                          <MoneyInput value={form.deposit} onChange={(v) => set("deposit", v)} />
+                        </Field>
+                      )}
+
+                      {/* Rental agreement add-on — rentals only */}
+                      {rentLike && (
+                        <div className="rounded-2xl border border-brand-navy/15 bg-brand-navy-light/50 p-4">
+                          <label className="flex items-start gap-2.5 text-sm text-foreground">
+                            <input
+                              type="checkbox"
+                              checked={form.wantAgreement}
+                              onChange={(e) => set("wantAgreement", e.target.checked)}
+                              className="mt-0.5 h-4 w-4 rounded border-border accent-brand-navy"
+                            />
+                            <span>
+                              <span className="font-semibold">Get the rental agreement done by RENTLET</span>
+                              <span className="mt-0.5 block text-xs text-muted-foreground">
+                                A lawyer-verified agreement, e-stamped and delivered. A manager calls you
+                                once a tenant is finalised — nothing charged now.{" "}
+                                <a
+                                  href="/rental-agreement"
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="font-semibold text-brand-navy underline"
+                                >
+                                  Learn more
+                                </a>
+                              </span>
+                            </span>
+                          </label>
+                        </div>
+                      )}
+
+                      {/* Maintenance */}
+                      <Field label="Maintenance (monthly)">
+                        <MoneyInput
+                          value={form.maintenance}
+                          onChange={(v) => set("maintenance", v)}
+                          placeholder="Optional"
+                        />
+                      </Field>
+                    </>
+                  )}
 
                   <div className="space-y-3">
                     <label className="flex items-center gap-2.5 text-sm text-foreground">
@@ -2303,7 +2502,15 @@ function PostPropertyWizard({ user }: { user: AuthUser }) {
                   disabled={submitting || (step === 2 && !form.agreeTerms)}
                   className={cn(buttonVariants({ variant: "primary", size: "lg" }))}
                 >
-                  {submitting ? "Submitting..." : step < 2 ? "Continue" : "Submit listing"}
+                  {submitting
+                    ? editingProperty
+                      ? "Saving..."
+                      : "Submitting..."
+                    : step < 2
+                      ? "Continue"
+                      : editingProperty
+                        ? "Save changes"
+                        : "Submit listing"}
                   {!submitting && <ArrowRight className="h-4 w-4" />}
                 </button>
               </div>

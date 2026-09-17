@@ -1,4 +1,4 @@
-import { BedDouble, Bath, LandPlot, Ruler, Layers, Compass, Sofa, CalendarClock, Wallet, Users, UserRound } from "lucide-react";
+import { BedDouble, Bath, LandPlot, Ruler, Layers, Compass, Sofa, CalendarClock, Wallet, Users, UserRound, Milestone, ShieldCheck } from "lucide-react";
 import type { Property } from "@/types/property";
 
 const FURNISHING_LABEL: Record<string, string> = {
@@ -11,6 +11,13 @@ const GENDER_LABEL: Record<string, string> = {
   male: "Men only",
   female: "Women only",
   any: "Anyone",
+};
+
+const LAND_TYPE_LABEL: Record<string, string> = {
+  residential: "Residential",
+  commercial: "Commercial",
+  agricultural: "Agricultural",
+  industrial: "Industrial",
 };
 
 // Rough guideline occupancy for a residential unit — ~2 people per bedroom (a studio/1RK still
@@ -33,6 +40,9 @@ const TINT: Record<string, string> = {
   Furnishing: "bg-brand-orange-light text-brand-orange",
   "Available From": "bg-teal-50 text-teal-600",
   Maintenance: "bg-blue-50 text-blue-600",
+  "Land Type": "bg-lime-50 text-lime-700",
+  "Road Width": "bg-orange-50 text-orange-600",
+  "Boundary Wall": "bg-emerald-50 text-emerald-600",
 };
 
 export function PropertyInfoGrid({ property: p }: { property: Property }) {
@@ -60,6 +70,9 @@ export function PropertyInfoGrid({ property: p }: { property: Property }) {
       label: "Maintenance",
       value: `₹${p.maintenance.toLocaleString("en-IN")}/month`,
     },
+    p.landType && { icon: LandPlot, label: "Land Type", value: LAND_TYPE_LABEL[p.landType] ?? p.landType },
+    p.roadWidthFt != null && { icon: Milestone, label: "Road Width", value: `${p.roadWidthFt} ft` },
+    p.boundaryWall != null && { icon: ShieldCheck, label: "Boundary Wall", value: p.boundaryWall ? "Yes" : "No" },
   ].filter(Boolean) as { icon: typeof BedDouble; label: string; value: string }[];
 
   return (

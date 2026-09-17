@@ -13,10 +13,24 @@ const PLACEHOLDER_PHOTO_COUNT = 6;
 
 type Tab = "photos" | "floorplan" | "video";
 
-function PhotoSlide({ url, seed, propertyType, className }: { url?: string; seed: string; propertyType: Property["propertyType"]; className?: string }) {
+function PhotoSlide({
+  url,
+  seed,
+  propertyType,
+  className,
+  fit = "cover",
+}: {
+  url?: string;
+  seed: string;
+  propertyType: Property["propertyType"];
+  className?: string;
+  /** "cover" fills a fixed-aspect box (thumbnails, main slide) — "contain" shows the whole,
+   *  un-cropped photo (the fullscreen lightbox, where cropping is exactly what shouldn't happen). */
+  fit?: "cover" | "contain";
+}) {
   if (url) {
     // eslint-disable-next-line @next/next/no-img-element -- Firebase Storage URL, not a local asset next/image needs to optimize
-    return <img src={url} alt="" className={cn("object-cover", className)} />;
+    return <img src={url} alt="" className={cn(fit === "cover" ? "object-cover" : "object-contain", className)} />;
   }
   return <PropertyImage id={seed} propertyType={propertyType} className={className} />;
 }
@@ -146,7 +160,7 @@ export function Gallery({ property }: { property: Property }) {
               <ChevronLeft className="h-5 w-5" />
             </button>
             <div className="h-full w-full max-w-3xl">
-              <PhotoSlide url={photos[active]} seed={photoSeed(active)} propertyType={property.propertyType} className="h-full w-full rounded-xl" />
+              <PhotoSlide url={photos[active]} seed={photoSeed(active)} propertyType={property.propertyType} className="h-full w-full rounded-xl" fit="contain" />
             </div>
             <button
               type="button"

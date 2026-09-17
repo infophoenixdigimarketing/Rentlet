@@ -31,6 +31,10 @@ export interface WizardState {
   carpetArea: string;
   facing: string | null;
   propertyAge: string | null;
+  // Plot/Land only.
+  landType: "residential" | "commercial" | "agricultural" | "industrial" | null;
+  roadWidth: string;
+  boundaryWall: boolean;
 
   rent: string;
   price: string;
@@ -74,6 +78,9 @@ export const initialWizardState: WizardState = {
   carpetArea: "",
   facing: null,
   propertyAge: null,
+  landType: null,
+  roadWidth: "",
+  boundaryWall: false,
   rent: "",
   price: "",
   deposit: "",

@@ -57,25 +57,48 @@ export default function OwnerPropertiesPage() {
 
 function PropertyRow({ property }: { property: Property }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-
-  function togglePause() {
-    const next = property.status === "active" ? "paused" : "active";
-    ownerPropertiesService.setStatus(property.id, next);
-    toast(next === "active" ? "Listing published" : "Listing paused");
-  }
-
-  function boost() {
-    ownerPropertiesService.toggleFeatured(property.id);
-    toast(property.featured ? "Boost removed" : "Listing boosted to Featured");
-  }
-
-  function markDone() {
-    const next = property.listingType === "rent" ? "rented" : "sold";
-    ownerPropertiesService.setStatus(property.id, next);
-    toast(`Marked as ${next}`);
-  }
-
   const [deleting, setDeleting] = useState(false);
+  // Tracks which of the other actions is in flight so its button can show "..." and everything
+  // else stays clickable — Pause/Boost/Mark done are independent writes.
+  const [busy, setBusy] = useState<"pause" | "boost" | "done" | null>(null);
+
+  async function togglePause() {
+    const next = property.status === "active" ? "paused" : "active";
+    setBusy("pause");
+    try {
+      await ownerPropertiesService.setStatus(property.id, next);
+      toast(next === "active" ? "Listing published" : "Listing paused");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Couldn't update the listing. Try again.", "error");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function boost() {
+    setBusy("boost");
+    try {
+      await ownerPropertiesService.toggleFeatured(property.id);
+      toast(property.featured ? "Boost removed" : "Listing boosted to Featured");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Couldn't update the listing. Try again.", "error");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function markDone() {
+    const next = property.listingType === "rent" ? "rented" : "sold";
+    setBusy("done");
+    try {
+      await ownerPropertiesService.setStatus(property.id, next);
+      toast(`Marked as ${next}`);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Couldn't update the listing. Try again.", "error");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function del() {
     if (!confirmingDelete) {
@@ -127,40 +150,42 @@ function PropertyRow({ property }: { property: Property }) {
         </div>
 
         <div className="mt-auto flex flex-wrap gap-2 pt-3">
-          <button
-            type="button"
-            onClick={() => toast("Editing opens the Post Property wizard — arriving in Phase 7", "info")}
+          <Link
+            href={`/post-property?edit=${property.id}`}
             className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
           >
             <Pencil className="h-3.5 w-3.5" /> Edit
-          </button>
+          </Link>
           {!isClosed && (
             <button
               type="button"
               onClick={togglePause}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
+              disabled={busy === "pause"}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-60"
             >
               {property.status === "active" ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-              {property.status === "active" ? "Pause" : "Publish"}
+              {busy === "pause" ? "..." : property.status === "active" ? "Pause" : "Publish"}
             </button>
           )}
           <button
             type="button"
             onClick={boost}
+            disabled={busy === "boost"}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold",
+              "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60",
               property.featured ? "border-brand-orange bg-brand-orange-light text-brand-orange-dark" : "border-border text-foreground hover:bg-muted"
             )}
           >
-            <Star className="h-3.5 w-3.5" /> {property.featured ? "Boosted" : "Boost"}
+            <Star className="h-3.5 w-3.5" /> {busy === "boost" ? "..." : property.featured ? "Boosted" : "Boost"}
           </button>
           {!isClosed && (
             <button
               type="button"
               onClick={markDone}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
+              disabled={busy === "done"}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-60"
             >
-              <CheckCircle2 className="h-3.5 w-3.5" /> Mark as {property.listingType === "rent" ? "Rented" : "Sold"}
+              <CheckCircle2 className="h-3.5 w-3.5" /> {busy === "done" ? "..." : `Mark as ${property.listingType === "rent" ? "Rented" : "Sold"}`}
             </button>
           )}
           <button

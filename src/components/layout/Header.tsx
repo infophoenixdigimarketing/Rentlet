@@ -43,7 +43,9 @@ const NAV_MENUS: { label: string; href: string; icon: LucideIcon; items: NavItem
       { label: "Houses", href: "/properties?listingType=sale&type=independent_house" },
       { label: "Apartments", href: "/properties?listingType=sale&type=apartment" },
       { label: "Villas", href: "/properties?listingType=sale&type=villa" },
-      { label: "Commercial", href: "/properties?listingType=sale&type=office,shop,showroom,warehouse" },
+      { label: "Plots & Land", href: "/properties?listingType=sale&type=plot,land" },
+      { label: "Office Space", href: "/properties?listingType=sale&type=office" },
+      { label: "Shops & Warehouse", href: "/properties?listingType=sale&type=shop,showroom,warehouse" },
     ],
   },
   {
@@ -61,19 +63,10 @@ const NAV_MENUS: { label: string; href: string; icon: LucideIcon; items: NavItem
       { label: "Post Shops & Warehouse", href: "/post-property" },
     ],
   },
-  {
-    label: "Lease",
-    href: "/properties?listingType=rent&type=office,shop,showroom,warehouse",
-    icon: FileSignature,
-    items: [
-      { label: "Office Space", href: "/properties?listingType=rent&type=office" },
-      { label: "Shops & Retail", href: "/properties?listingType=rent&type=shop,showroom" },
-      { label: "Warehouse & Godown", href: "/properties?listingType=rent&type=warehouse" },
-      { label: "Rental Agreement", href: "/rental-agreement" },
-      { label: "List for Lease", href: "/post-property" },
-    ],
-  },
 ];
+
+// Lease and Rent Agreement are plain links, not dropdowns — nothing to expand.
+const LEASE_HREF = "/properties?listingType=rent&type=office,shop,showroom,warehouse";
 
 export function Header() {
   const [open, setOpen] = useState(false);
@@ -141,6 +134,10 @@ export function Header() {
         </nav>
 
         <div className="header-actions hidden items-center gap-1.5 lg:flex">
+          <Link href={LEASE_HREF} className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "header-secondary-cta hidden gap-1.5 xl:inline-flex")}>
+            <FileSignature className="h-4 w-4" strokeWidth={2} />
+            Lease
+          </Link>
           <Link href="/rental-agreement" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "header-secondary-cta hidden gap-1.5 xl:inline-flex")}>
             <ScrollText className="h-4 w-4" strokeWidth={2} />
             Rent Agreement
@@ -322,6 +319,24 @@ export function Header() {
           </div>
 
           <div className="mt-3 flex gap-2 px-1">
+            <Link
+              href={LEASE_HREF}
+              onClick={() => setOpen(false)}
+              className={cn(buttonVariants({ variant: "ghost", size: "md" }), "flex-1 gap-1.5")}
+            >
+              <FileSignature className="h-4 w-4" strokeWidth={2} />
+              Lease
+            </Link>
+            <Link
+              href="/rental-agreement"
+              onClick={() => setOpen(false)}
+              className={cn(buttonVariants({ variant: "ghost", size: "md" }), "flex-1 gap-1.5")}
+            >
+              <ScrollText className="h-4 w-4" strokeWidth={2} />
+              Agreement
+            </Link>
+          </div>
+          <div className="mt-2 flex gap-2 px-1">
             <Link
               href="/post-property"
               onClick={() => setOpen(false)}

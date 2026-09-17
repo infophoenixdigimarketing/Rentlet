@@ -42,12 +42,48 @@ export async function POST(req: Request) {
       subject: heading,
       html: body.isNewAccount
         ? `
-          <p>Hi ${name},</p>
-          <p>Your Rentlet account is ready. Browse verified homes, apartments, villas and more — or post your own property for free.</p>
-          <p style="margin:24px 0;">
-            <a href="${siteUrl}/properties" style="background:#FF5A00;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Explore Rentlet</a>
+        <div style="max-width:520px;margin:0 auto;padding:40px 32px;font-family:Georgia,'Times New Roman',serif;background:#fdfcfb;">
+          <h1 style="margin:0 0 28px;font-family:'Brush Script MT',cursive,Georgia,serif;font-size:40px;font-weight:normal;color:#c81e2c;line-height:1.2;">
+            Welcome to<br />Rentlet!
+          </h1>
+          <p style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111;">Hi ${name},</p>
+          <p style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:bold;color:#111;">
+            Welcome to <span style="color:#c81e2c;">Rentlet!</span>
           </p>
-          <p>— Team Rentlet</p>
+          <p style="margin:0 0 28px;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#444;">
+            Find your next home with ease, or list your property and reach the right renters.
+          </p>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-family:Arial,Helvetica,sans-serif;">
+            <tr>
+              <td style="width:33%;text-align:center;padding:0 8px;vertical-align:top;">
+                <div style="font-size:22px;color:#c81e2c;">&#127968;</div>
+                <p style="margin:8px 0 2px;font-size:13px;font-weight:bold;color:#111;">Find a Home</p>
+                <p style="margin:0;font-size:11px;color:#666;line-height:1.4;">Browse quality rentals that fit your lifestyle.</p>
+              </td>
+              <td style="width:33%;text-align:center;padding:0 8px;vertical-align:top;border-left:1px solid #e5dfd8;border-right:1px solid #e5dfd8;">
+                <div style="font-size:22px;color:#c81e2c;">&#128203;</div>
+                <p style="margin:8px 0 2px;font-size:13px;font-weight:bold;color:#111;">List a Property</p>
+                <p style="margin:0;font-size:11px;color:#666;line-height:1.4;">Showcase your property and find reliable renters.</p>
+              </td>
+              <td style="width:33%;text-align:center;padding:0 8px;vertical-align:top;">
+                <div style="font-size:22px;color:#c81e2c;">&#128101;</div>
+                <p style="margin:8px 0 2px;font-size:13px;font-weight:bold;color:#111;">Connect Easily</p>
+                <p style="margin:0;font-size:11px;color:#666;line-height:1.4;">Chat, share, and finalise — all in one place.</p>
+              </td>
+            </tr>
+          </table>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:32px 0 24px;">
+            <tr>
+              <td style="border-radius:24px;background:#c81e2c;">
+                <a href="${siteUrl}/properties" style="display:inline-block;padding:13px 28px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#fff;text-decoration:none;border-radius:24px;">
+                  Explore Rentlet &rarr;
+                </a>
+              </td>
+            </tr>
+          </table>
+          <p style="margin:0 0 2px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#444;">Your next place starts here.</p>
+          <p style="margin:0;font-family:Georgia,serif;font-style:italic;font-size:15px;color:#111;">Team Rentlet</p>
+        </div>
         `
         : `
           <p>Hi ${name},</p>

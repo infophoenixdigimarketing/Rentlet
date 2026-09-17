@@ -91,6 +91,9 @@ export function buildProperty(
     furnishing: w.furnishing,
     propertyAge: w.propertyAge,
     availableFrom: "Immediate",
+    landType: w.category === "plot" || w.category === "land" ? w.landType : null,
+    roadWidthFt: w.category === "plot" || w.category === "land" ? num(w.roadWidth) : null,
+    boundaryWall: w.category === "plot" || w.category === "land" ? w.boundaryWall : undefined,
 
     amenities: w.amenities,
     images: media.images,
@@ -188,4 +191,60 @@ export async function submitProperty(w: WizardState, user: AuthUser, onProgress?
   }
 
   return { ...created, ...media };
+}
+
+/** Owner-editing an existing listing. Only the fields a self-service edit is allowed to touch
+ *  are written — moderation state (status/featured/verificationStatus) is never reset by an
+ *  edit, and existing photos/video/floor plan are left alone unless the owner actually picked
+ *  new ones in this session (buildProperty() defaults media to empty, which would otherwise
+ *  wipe out real Storage URLs on every edit). */
+export async function updateProperty(
+  id: string,
+  w: WizardState,
+  user: AuthUser,
+  existing: Property,
+  onProgress?: (p: SubmitProgress) => void
+): Promise<Property> {
+  const draft = buildProperty(w, user, id);
+  const {
+    id: _id,
+    createdAt: _createdAt,
+    views: _views,
+    leadsCount: _leadsCount,
+    savedCount: _savedCount,
+    status: _status,
+    featured: _featured,
+    verificationStatus: _verificationStatus,
+    rejectionReason: _rejectionReason,
+    images: _images,
+    videos: _videos,
+    floorPlanUrl: _floorPlanUrl,
+    ...patch
+  } = draft;
+  void _id;
+  void _createdAt;
+  void _views;
+  void _leadsCount;
+  void _savedCount;
+  void _status;
+  void _featured;
+  void _verificationStatus;
+  void _rejectionReason;
+  void _images;
+  void _videos;
+  void _floorPlanUrl;
+
+  onProgress?.({ percent: null, label: "Saving changes..." });
+  await propertyRepository.update(id, patch);
+
+  const hasNewMedia = Boolean(w.cover || w.gallery.length || w.video || w.floorPlan);
+  if (isFirestoreEnabled() && hasNewMedia) {
+    const media = await uploadAll(id, w, onProgress);
+    if (media.images.length || media.videos.length || media.floorPlanUrl) {
+      await propertyRepository.update(id, media);
+    }
+  }
+
+  const updated = await propertyRepository.getById(id);
+  return updated ?? { ...existing, ...patch };
 }

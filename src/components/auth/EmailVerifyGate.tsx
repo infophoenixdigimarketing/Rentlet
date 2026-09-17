@@ -7,6 +7,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { authService } from "@/lib/services/auth.service";
+import { useAuth } from "@/lib/auth";
+import { notifyLogin } from "@/lib/notify-login";
 import { toast } from "@/lib/toast";
 
 /** Shown wherever an email/password account must confirm its address before continuing
@@ -24,6 +26,7 @@ export function EmailVerifyGate({
   bare?: boolean;
 }) {
   const router = useRouter();
+  const { user } = useAuth();
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
@@ -65,6 +68,11 @@ export function EmailVerifyGate({
       const verified = await authService.verifyEmailOtp(code);
       if (verified) {
         toast("Email confirmed! Welcome to Rentlet.");
+        // Register-by-email is the one signup path that didn't already send the "Welcome to
+        // Rentlet" email at account creation (Google/Phone do, right when the account is made —
+        // see GoogleButton.tsx / PhoneOtpForm.tsx). This is its equivalent moment: the address
+        // is now actually confirmed, which is the right time to send it here.
+        notifyLogin({ email, name: user?.name?.split(" ")[0] ?? "there", isNewAccount: true });
         router.push(next);
       } else {
         setError("Incorrect code. Try again.");

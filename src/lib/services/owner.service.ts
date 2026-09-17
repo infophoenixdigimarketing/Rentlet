@@ -16,10 +16,11 @@ export interface OwnerPropertiesService {
   /** Post-property wizard (spec §16) hands its finished listing to this — see post-property.service.ts.
    *  No-op in Firebase mode: the live query already picks up the new doc. */
   addProperty(property: Property): void;
-  setStatus(id: string, status: PropertyStatus): void;
-  toggleFeatured(id: string): void;
-  /** Returns once the delete is confirmed (Firestore mode) so callers can surface a failure —
-   *  a permission-denied write must not silently report "deleted" while the listing stays put. */
+  /** All three below return once the write is confirmed (Firestore mode) so callers can
+   *  surface a failure — a permission-denied write must not silently report success while
+   *  nothing actually changed. */
+  setStatus(id: string, status: PropertyStatus): Promise<void>;
+  toggleFeatured(id: string): Promise<void>;
   remove(id: string): Promise<void>;
 }
 
@@ -46,11 +47,11 @@ class MockOwnerPropertiesService implements OwnerPropertiesService {
     this.store = [property, ...this.store];
     this.emit();
   }
-  setStatus(id: string, status: PropertyStatus) {
+  async setStatus(id: string, status: PropertyStatus) {
     this.store = this.store.map((p) => (p.id === id ? { ...p, status } : p));
     this.emit();
   }
-  toggleFeatured(id: string) {
+  async toggleFeatured(id: string) {
     this.store = this.store.map((p) => (p.id === id ? { ...p, featured: !p.featured } : p));
     this.emit();
   }
@@ -105,11 +106,11 @@ class FirebaseOwnerPropertiesService implements OwnerPropertiesService {
     void property; // no-op — the onSnapshot listener above already reflects the newly created document
   }
   setStatus(id: string, status: PropertyStatus) {
-    void propertyRepository.update(id, { status });
+    return propertyRepository.update(id, { status });
   }
   toggleFeatured(id: string) {
     const current = this.snapshot.find((p) => p.id === id);
-    if (current) void propertyRepository.update(id, { featured: !current.featured });
+    return current ? propertyRepository.update(id, { featured: !current.featured }) : Promise.resolve();
   }
   remove(id: string) {
     return propertyRepository.remove(id);
