@@ -626,7 +626,9 @@ class FirebaseAuthProvider implements AuthProvider {
       // Email the 6-digit verification code. Best-effort: a failure here (rate limit, mail
       // server hiccup, etc.) must not block an otherwise-successful signup — EmailVerifyGate's
       // "Resend code" covers a failed first send.
-      await sendEmailOtpRequest(credential.user).catch(() => {});
+      await sendEmailOtpRequest(credential.user).catch((err) => {
+        console.error("Initial verification-code send failed — user can still use Resend:", err);
+      });
       await credential.user.reload();
       const user = firebaseUserToAuthUser(credential.user, { name: input.name, role: input.role });
       this.current = user;

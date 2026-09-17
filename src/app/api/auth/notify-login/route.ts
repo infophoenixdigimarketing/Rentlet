@@ -43,9 +43,35 @@ export async function POST(req: Request) {
       html: body.isNewAccount
         ? `
         <div style="max-width:520px;margin:0 auto;padding:40px 32px;font-family:Georgia,'Times New Roman',serif;background:#fdfcfb;">
-          <h1 style="margin:0 0 28px;font-family:'Brush Script MT',cursive,Georgia,serif;font-size:40px;font-weight:normal;color:#c81e2c;line-height:1.2;">
+          <h1 style="margin:0 0 24px;font-family:'Brush Script MT',cursive,Georgia,serif;font-size:40px;font-weight:normal;color:#c81e2c;line-height:1.2;">
             Welcome to<br />Rentlet!
           </h1>
+
+          <!-- Photo collage — real listing photos, plain <img> sizing (no CSS transforms/
+               rotation: Outlook and most mobile mail apps strip those, so the reliable way to
+               get a magazine-style layout in email is a table, not absolutely-positioned tilts. -->
+          <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 28px;">
+            <tr>
+              <td style="padding-bottom:8px;">
+                <img src="${siteUrl}/images/hero/hero-villa.jpg" width="456" height="220" alt="" style="width:100%;height:220px;object-fit:cover;border-radius:12px;display:block;" />
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;">
+                  <tr>
+                    <td style="width:50%;padding-right:4px;">
+                      <img src="${siteUrl}/images/showcase/living-3bhk.jpg" width="222" height="140" alt="" style="width:100%;height:140px;object-fit:cover;border-radius:10px;display:block;" />
+                    </td>
+                    <td style="width:50%;padding-left:4px;">
+                      <img src="${siteUrl}/images/properties/p3-apartment-interior.jpg" width="222" height="140" alt="" style="width:100%;height:140px;object-fit:cover;border-radius:10px;display:block;" />
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+
           <p style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111;">Hi ${name},</p>
           <p style="margin:0 0 4px;font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:bold;color:#111;">
             Welcome to <span style="color:#c81e2c;">Rentlet!</span>
