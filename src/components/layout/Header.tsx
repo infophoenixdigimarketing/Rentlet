@@ -16,11 +16,9 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
-// TEMPORARY: hides the header's "Sign Up" button while email verification is unreliable (Gmail
-// SMTP / Resend sandbox issues), so new visitors don't land on a signup flow that can't send
-// them a code. Login still works as normal — this only hides the entry point to /register.
-// Flip back to true once signup is confirmed reliable again.
-const SHOW_SIGNUP_BUTTON = false;
+// Set false to hide the header's "Sign Up" button (e.g. while email verification is
+// unreliable) without touching the three call sites below — Login is unaffected either way.
+const SHOW_SIGNUP_BUTTON = true;
 
 // Top nav: Rent / Buy / Sell, each opening a property-type submenu. Every href goes to the real,
 // working /properties search (filtered) or /post-property — no 404 routes.
