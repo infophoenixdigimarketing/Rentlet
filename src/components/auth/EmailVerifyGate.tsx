@@ -71,8 +71,12 @@ export function EmailVerifyGate({
         // Register-by-email is the one signup path that didn't already send the "Welcome to
         // Rentlet" email at account creation (Google/Phone do, right when the account is made —
         // see GoogleButton.tsx / PhoneOtpForm.tsx). This is its equivalent moment: the address
-        // is now actually confirmed, which is the right time to send it here.
-        notifyLogin({ email, name: user?.name?.split(" ")[0] ?? "there", isNewAccount: true });
+        // is now actually confirmed, which is the right time to send it here. Awaited (unlike
+        // the other two callers) so a failed send is at least visible instead of vanishing —
+        // still never blocks navigation.
+        notifyLogin({ email, name: user?.name?.split(" ")[0] ?? "there", isNewAccount: true }).then((sent) => {
+          if (!sent) toast("Confirmed — but the welcome email couldn't be sent. Nothing to worry about.", "info");
+        });
         router.push(next);
       } else {
         setError("Incorrect code. Try again.");
