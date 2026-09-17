@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import nodemailer from "nodemailer";
 import { getAdminAuth, getAdminDb, isFirebaseAdminConfigured } from "@/lib/firebase/admin";
+import { sendMail, isMailConfigured } from "@/lib/email/send-mail";
 
 // Sends a 6-digit email verification code, mirroring the phone-OTP experience (spec request:
 // "give this like a phone number, do the email also"). Firebase Auth's own email verification is
@@ -47,37 +47,24 @@ export async function POST(req: Request) {
   const code = String(Math.floor(100000 + Math.random() * 900000));
   await ref.set({ code, email, attempts: 0, lastSentAt: now, expiresAt: now + CODE_TTL_MS });
 
-  const host = process.env.SMTP_HOST;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  if (!host || !user || !pass) {
+  if (!isMailConfigured()) {
     // Mirrors notify-listing's "skip cleanly if unset" — but here the user is actively waiting
     // for a code, so this must be a hard error rather than a silent no-op.
     return NextResponse.json({ error: "Email sending isn't configured on this server yet." }, { status: 503 });
   }
 
-  const transporter = nodemailer.createTransport({
-    host,
-    port: Number(process.env.SMTP_PORT || 465),
-    secure: Number(process.env.SMTP_PORT || 465) === 465,
-    auth: { user, pass },
+  const sent = await sendMail({
+    to: email,
+    subject: `${code} is your Rentlet verification code`,
+    html: `
+      <p>Hi,</p>
+      <p>Your Rentlet verification code is:</p>
+      <p style="font-size:28px;font-weight:bold;letter-spacing:4px;">${code}</p>
+      <p>This code expires in 10 minutes. If you didn't request this, you can ignore this email.</p>
+      <p>— Team Rentlet</p>
+    `,
   });
-
-  try {
-    await transporter.sendMail({
-      from: `Rentlet <${user}>`,
-      to: email,
-      subject: `${code} is your Rentlet verification code`,
-      html: `
-        <p>Hi,</p>
-        <p>Your Rentlet verification code is:</p>
-        <p style="font-size:28px;font-weight:bold;letter-spacing:4px;">${code}</p>
-        <p>This code expires in 10 minutes. If you didn't request this, you can ignore this email.</p>
-        <p>— Team Rentlet</p>
-      `,
-    });
-  } catch (err) {
-    console.error("send-email-otp mail failed:", err);
+  if (!sent) {
     return NextResponse.json({ error: "Couldn't send the code. Try again in a moment." }, { status: 502 });
   }
 
