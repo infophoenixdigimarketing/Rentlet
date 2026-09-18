@@ -1881,8 +1881,8 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
                     </div>
                   </div>
 
-                  {/* Project / society name */}
-                  <Field label="Apartment / Project Name">
+                  {/* Project / society name — land just calls it "Project Name" */}
+                  <Field label={isLand ? "Project Name" : "Apartment / Project Name"}>
                     <input
                       type="text"
                       value={form.projectName}
