@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 // Auth flows write a greeting here just before redirecting; this banner shows it once on the
 // next page. A sessionStorage handoff survives the navigation but not a new tab / reload.
@@ -9,6 +10,7 @@ export const WELCOME_KEY = "rentlet:welcome";
 
 export function WelcomeBanner() {
   const [message, setMessage] = useState<string | null>(null);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     let text: string | null = null;
@@ -24,6 +26,15 @@ export function WelcomeBanner() {
     const t = setTimeout(() => setMessage(null), 7000);
     return () => clearTimeout(t);
   }, []);
+
+  // Logging out mid-countdown shouldn't leave a stale "Welcome, <name>!" greeting on screen —
+  // SiteChrome keeps this component mounted across navigation, so nothing else clears it. Wait
+  // for `loading` to clear first — until Firebase confirms the session, `user` is null whether
+  // or not someone's actually signed in, and clearing on that would hide the banner instantly.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing to an external auth event
+    if (!loading && !user) setMessage(null);
+  }, [loading, user]);
 
   if (!message) return null;
 
