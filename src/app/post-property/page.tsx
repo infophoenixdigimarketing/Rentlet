@@ -610,11 +610,11 @@ type FormState = {
   propertyAge: string;
   facing: string;
   builtUpArea: string;
+  plotDimensions: string;
   furnishing: string;
   parking: string;
   availableFrom: string;
   preferredTenants: string;
-  petsAllowed: string;
   description: string;
   deposit: string;
   membersAllowed: string;
@@ -1123,11 +1123,11 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
     propertyAge: "",
     facing: "",
     builtUpArea: "",
+    plotDimensions: "",
     furnishing: "",
     parking: "",
     availableFrom: "",
     preferredTenants: "",
-    petsAllowed: "",
     description: "",
     deposit: "",
     membersAllowed: "",
@@ -1317,6 +1317,7 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
       `${bhkLabel}${form.propertyType} available for ${dealLabel.toLowerCase()} in ${locality}, ${cityName}.`,
     ];
     if (isPG && form.roomCount) autoParts.push(`${form.roomCount} room${form.roomCount === "1" ? "" : "s"} available.`);
+    if (isLand && form.plotDimensions.trim()) autoParts.push(`Plot dimensions: ${form.plotDimensions.trim()}.`);
     if (isRent && form.membersAllowed) autoParts.push(`Suitable for up to ${form.membersAllowed} members.`);
     if (form.lookingTo === "Lease" && form.leaseYears)
       autoParts.push(`Lease term: ${form.leaseYears} year${form.leaseYears === "1" ? "" : "s"}.`);
@@ -1328,7 +1329,6 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
     if (form.parking && form.parking !== "None") autoParts.push(`${form.parking} parking.`);
     if (isRent && form.availableFrom) autoParts.push(`Available from ${form.availableFrom}.`);
     if (isRent && form.preferredTenants) autoParts.push(`Preferred tenants: ${form.preferredTenants}.`);
-    if (isRent && form.petsAllowed) autoParts.push(`Pets ${form.petsAllowed === "Yes" ? "allowed" : "not allowed"}.`);
     if (form.visitDays.length)
       autoParts.push(
         `Visits: ${form.visitDays.join(", ")}${form.visitTime ? ` (${form.visitTime})` : ""}.`
@@ -2027,6 +2027,19 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
                     </span>
                   </Field>
 
+                  {/* Plot dimensions — land only, e.g. 30x40 */}
+                  {isLand && (
+                    <Field label="Plot Dimensions">
+                      <input
+                        type="text"
+                        value={form.plotDimensions}
+                        onChange={(e) => set("plotDimensions", e.target.value)}
+                        placeholder="e.g. 30x40 ft"
+                        className={UNDERLINE_FIELD}
+                      />
+                    </Field>
+                  )}
+
                   {/* Members allowed — rentals only */}
                   {rentLike && (
                     <Field label="Members Allowed">
@@ -2081,13 +2094,6 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
                           value={form.preferredTenants}
                           onChange={(v) => set("preferredTenants", v)}
                           options={TENANT_OPTIONS}
-                        />
-                      </Field>
-                      <Field label="Pets allowed?">
-                        <PillGroup
-                          value={form.petsAllowed}
-                          onChange={(v) => set("petsAllowed", v)}
-                          options={["Yes", "No"]}
                         />
                       </Field>
                     </>
