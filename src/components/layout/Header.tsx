@@ -62,9 +62,12 @@ const NAV_MENUS: { label: string; href: string; icon: LucideIcon; items: NavItem
   },
   {
     label: "Lease",
-    href: "/properties?listingType=rent&type=office,shop,showroom,warehouse",
+    href: "/properties?listingType=rent&type=independent_house,apartment,villa,office,shop,showroom,warehouse",
     icon: FileSignature,
     items: [
+      { label: "Houses", href: "/properties?listingType=rent&type=independent_house" },
+      { label: "Apartments", href: "/properties?listingType=rent&type=apartment" },
+      { label: "Villas", href: "/properties?listingType=rent&type=villa" },
       { label: "Office Space", href: "/properties?listingType=rent&type=office" },
       { label: "Shops & Warehouse", href: "/properties?listingType=rent&type=shop,showroom,warehouse" },
     ],
