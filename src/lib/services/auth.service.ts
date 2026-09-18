@@ -10,6 +10,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   signOut,
+  sendEmailVerification,
   updateProfile as updateFirebaseDisplayName,
   updateEmail as updateFirebaseEmail,
   RecaptchaVerifier,
@@ -19,6 +20,7 @@ import {
 } from "firebase/auth";
 import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { getFirebaseAuth } from "@/lib/firebase/client";
+import { SITE_URL } from "@/lib/site-url";
 import type { AuthUser, UserRole } from "@/types/user";
 
 const USERS_KEY = "rentlet_demo_users";
@@ -65,14 +67,11 @@ export interface AuthProvider {
   confirmPasswordReset(email: string, code: string, newPassword: string): Promise<void>;
   logout(): Promise<void>;
   updateProfile(patch: Partial<Pick<AuthUser, "name" | "email" | "phone">>): Promise<AuthUser>;
-  /** Email a fresh 6-digit verification code to the signed-in user's address. */
+  /** Emails a fresh verification link to the signed-in user's address. */
   resendEmailVerification(): Promise<void>;
-  /** Check the code the user typed against the one just emailed to them. On success, marks the
-   *  account verified and refreshes the cached user so `emailVerified` is up to date. Throws
-   *  with a plain-English message (wrong code, expired, too many attempts) on failure. */
-  verifyEmailOtp(code: string): Promise<boolean>;
-  /** Re-check whether the signed-in user's email is now confirmed (also refreshes the cached
-   *  user so `emailVerified` is up to date). Returns the fresh value. */
+  /** Re-check whether the signed-in user's email is now confirmed — e.g. after they click the
+   *  verification link in another tab/device (also refreshes the cached user so `emailVerified`
+   *  is up to date). Returns the fresh value. */
   refreshEmailVerified(): Promise<boolean>;
 }
 
@@ -336,11 +335,6 @@ class MockAuthProvider implements AuthProvider {
     await delay(300);
   }
 
-  async verifyEmailOtp(): Promise<boolean> {
-    await delay(300);
-    return true;
-  }
-
   async refreshEmailVerified(): Promise<boolean> {
     return true;
   }
@@ -499,19 +493,12 @@ function friendlyAuthError(err: unknown): string {
   }
 }
 
-// Firebase Auth's own email verification is link-only (no client-SDK way to turn that into a
-// typed code), so this is a small custom OTP system backed by the Admin SDK on the server side —
-// see api/auth/send-email-otp and api/auth/verify-email-otp.
-async function sendEmailOtpRequest(firebaseUser: FirebaseUser): Promise<void> {
-  const idToken = await firebaseUser.getIdToken();
-  const res = await fetch("/api/auth/send-email-otp", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${idToken}` },
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}) as { error?: string });
-    throw new Error(body.error || "Couldn't send the verification code.");
-  }
+// Firebase Auth's own email verification — a clickable link, sent and validated entirely by
+// Firebase itself (no custom OTP route, no dependency on Brevo/Resend/SMTP for this one email).
+// The continue link lands back on /verify-email, which polls refreshEmailVerified() to notice
+// the change once the user clicks it (in this tab or a different device/browser).
+async function sendVerificationLink(firebaseUser: FirebaseUser): Promise<void> {
+  await sendEmailVerification(firebaseUser, { url: `${SITE_URL}/verify-email`, handleCodeInApp: false });
 }
 
 // Sets an unverified phone number on an email/password account — see api/auth/set-phone for why
@@ -636,11 +623,11 @@ class FirebaseAuthProvider implements AuthProvider {
       // (the client SDK can't set an arbitrary phoneNumber without a real OTP verification).
       // Best-effort: a failure here must not block an otherwise-successful signup.
       await setPhoneRequest(credential.user, input.phone).catch(() => {});
-      // Email the 6-digit verification code. Best-effort: a failure here (rate limit, mail
-      // server hiccup, etc.) must not block an otherwise-successful signup — EmailVerifyGate's
-      // "Resend code" covers a failed first send.
-      await sendEmailOtpRequest(credential.user).catch((err) => {
-        console.error("Initial verification-code send failed — user can still use Resend:", err);
+      // Email the verification link. Best-effort: a failure here (rate limit, mail hiccup, etc.)
+      // must not block an otherwise-successful signup — EmailVerifyGate's "Resend link" covers a
+      // failed first send.
+      await sendVerificationLink(credential.user).catch((err) => {
+        console.error("Initial verification-link send failed — user can still use Resend:", err);
       });
       await credential.user.reload();
       const user = firebaseUserToAuthUser(credential.user, { name: input.name, role: input.role });
@@ -743,27 +730,7 @@ class FirebaseAuthProvider implements AuthProvider {
     const firebaseUser = getFirebaseAuth().currentUser;
     if (!firebaseUser) throw new Error("Not signed in.");
     if (!firebaseUser.email) throw new Error("This account has no email to verify.");
-    await sendEmailOtpRequest(firebaseUser);
-  }
-
-  async verifyEmailOtp(code: string): Promise<boolean> {
-    const firebaseUser = getFirebaseAuth().currentUser;
-    if (!firebaseUser) throw new Error("Not signed in.");
-    const idToken = await firebaseUser.getIdToken();
-    const res = await fetch("/api/auth/verify-email-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
-      body: JSON.stringify({ code }),
-    });
-    const body = await res.json().catch(() => ({}) as { error?: string });
-    if (!res.ok) throw new Error(body.error || "Couldn't verify that code.");
-    // The Admin SDK just flipped emailVerified server-side — reload to pick it up here too.
-    await firebaseUser.reload();
-    const user = firebaseUserToAuthUser(firebaseUser);
-    this.current = user;
-    this.ready = true;
-    this.listeners.forEach((l) => l(user));
-    return user.emailVerified;
+    await sendVerificationLink(firebaseUser);
   }
 
   async refreshEmailVerified(): Promise<boolean> {

@@ -2,18 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MailCheck } from "lucide-react";
+import { MailCheck, RefreshCw } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { authService } from "@/lib/services/auth.service";
+import { notifyLogin } from "@/lib/notify-login";
 import { toast } from "@/lib/toast";
+import { useAuth } from "@/lib/auth";
 
 /** Shown wherever an email/password account must confirm its address before continuing
- *  (property pages, the post-property wizard, /verify-email itself). Signup already emails a
- *  6-digit code by the time this renders (see auth.service.ts's registerWithEmail), so this
- *  goes straight to "enter the code", mirroring the phone-OTP flow. Pass `bare` when the caller
- *  already provides its own page container (e.g. inside AuthShell). */
+ *  (property pages, the post-property wizard, /verify-email itself). Signup already emailed a
+ *  verification link by the time this renders (see auth.service.ts's registerWithEmail) — a real
+ *  clickable link, handled entirely by Firebase itself, not a typed code. Since the link opens
+ *  Firebase's own confirmation page (possibly in a different tab/device), this polls
+ *  refreshEmailVerified() in the background so it notices the moment it's clicked, without
+ *  requiring the user to come back and press anything. Pass `bare` when the caller already
+ *  provides its own page container (e.g. inside AuthShell). */
 export function EmailVerifyGate({
   email,
   next = "/",
@@ -24,14 +28,14 @@ export function EmailVerifyGate({
   bare?: boolean;
 }) {
   const router = useRouter();
-  const [code, setCode] = useState("");
-  const [verifying, setVerifying] = useState(false);
+  const { user } = useAuth();
+  const [checking, setChecking] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Seconds left before "Resend code" unlocks (60s countdown after each send) — same pattern
-  // as PhoneOtpForm.
+  // Seconds left before "Resend link" unlocks (60s countdown after each send).
   const [resendIn, setResendIn] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const confirmedOnce = useRef(false);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -43,38 +47,74 @@ export function EmailVerifyGate({
     };
   }, [resendIn > 0]); // eslint-disable-line react-hooks/exhaustive-deps -- restart only when the countdown toggles on/off
 
+  async function handleVerified() {
+    if (confirmedOnce.current) return;
+    confirmedOnce.current = true;
+    toast("Email confirmed! Welcome to Rentlet.");
+    // Same moment Google/Phone signups already send their welcome email at — client-triggered,
+    // since there's no server route of ours in this Firebase-handled link flow to hook into.
+    void notifyLogin({ email, name: user?.name?.split(" ")[0] ?? "there", isNewAccount: true });
+    router.push(next);
+  }
+
+  // Poll in the background — covers clicking the link in another tab or on another device
+  // without needing to come back and press a button.
+  useEffect(() => {
+    const id = setInterval(async () => {
+      const verified = await authService.refreshEmailVerified().catch(() => false);
+      if (verified) {
+        clearInterval(id);
+        handleVerified();
+      }
+    }, 4000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once for the life of this screen
+  }, []);
+
+  // Also check right when the tab regains focus — the common case of "clicked the link, switched
+  // back to this tab" shouldn't need to wait for the next poll tick.
+  useEffect(() => {
+    function onFocus() {
+      authService
+        .refreshEmailVerified()
+        .then((verified) => {
+          if (verified) handleVerified();
+        })
+        .catch(() => {});
+    }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function checkNow() {
+    setChecking(true);
+    setError(null);
+    try {
+      const verified = await authService.refreshEmailVerified();
+      if (verified) {
+        handleVerified();
+      } else {
+        setError("Not verified yet — click the link in the email first.");
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't check right now.");
+    } finally {
+      setChecking(false);
+    }
+  }
+
   async function resend() {
     setResending(true);
     setError(null);
     try {
       await authService.resendEmailVerification();
       setResendIn(60);
-      toast(`Verification code sent to ${email}.`);
+      toast(`Verification link sent to ${email}.`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't send the code.");
+      setError(e instanceof Error ? e.message : "Couldn't send the link.");
     } finally {
       setResending(false);
-    }
-  }
-
-  async function verify(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setVerifying(true);
-    try {
-      const verified = await authService.verifyEmailOtp(code);
-      if (verified) {
-        toast("Email confirmed! Welcome to Rentlet.");
-        // The welcome email is now sent server-side, atomically with verification succeeding
-        // (see api/auth/verify-email-otp/route.ts) — nothing to trigger client-side here anymore.
-        router.push(next);
-      } else {
-        setError("Incorrect code. Try again.");
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't verify that code.");
-    } finally {
-      setVerifying(false);
     }
   }
 
@@ -82,22 +122,15 @@ export function EmailVerifyGate({
     <EmptyState
       icon={MailCheck}
       title="Confirm your email to continue"
-      description={`Enter the 6-digit code we sent to ${email}.`}
+      description={`We've sent a verification link to ${email}. Click it, then come back here — this page updates automatically.`}
       className={bare ? "border-none bg-transparent px-0 py-0" : undefined}
       action={
-        <form onSubmit={verify} className="mx-auto flex w-full max-w-xs flex-col items-center gap-2.5">
-          <Input
-            inputMode="numeric"
-            maxLength={6}
-            placeholder="6-digit code"
-            value={code}
-            onChange={(ev) => setCode(ev.target.value.replace(/\D/g, "").slice(0, 6))}
-            error={error ?? undefined}
-            className="w-full text-center text-lg tracking-[0.3em]"
-          />
-          <Button type="submit" disabled={verifying || code.length < 6} size="lg" className="w-full">
-            {verifying ? "Verifying..." : "Verify & Continue"}
+        <div className="mx-auto flex w-full max-w-xs flex-col items-center gap-2.5">
+          <Button type="button" onClick={checkNow} disabled={checking} size="lg" className="w-full">
+            <RefreshCw className={checking ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+            {checking ? "Checking..." : "I've clicked the link — Check now"}
           </Button>
+          {error && <p className="text-xs font-medium text-red-600">{error}</p>}
           <p className="text-xs text-muted-foreground">
             {resendIn > 0 ? (
               <>
@@ -105,19 +138,19 @@ export function EmailVerifyGate({
               </>
             ) : (
               <>
-                Didn&apos;t get the code?{" "}
+                Didn&apos;t get the email?{" "}
                 <button
                   type="button"
                   onClick={resend}
                   disabled={resending}
                   className="font-semibold text-brand-navy hover:underline disabled:opacity-50"
                 >
-                  {resending ? "Resending…" : "Resend code"}
+                  {resending ? "Resending…" : "Resend link"}
                 </button>
               </>
             )}
           </p>
-        </form>
+        </div>
       }
     />
   );
