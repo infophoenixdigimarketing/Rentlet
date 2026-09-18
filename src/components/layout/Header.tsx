@@ -34,8 +34,6 @@ const NAV_MENUS: { label: string; href: string; icon: LucideIcon; items: NavItem
       { label: "Villas", href: "/properties?listingType=rent&type=villa" },
       { label: "PG / Co-living", href: "/properties?type=pg,flatmate" },
       { label: "Flatmates", href: "/properties?type=flatmate" },
-      { label: "Office Space", href: "/properties?listingType=rent&type=office" },
-      { label: "Shops & Warehouse", href: "/properties?listingType=rent&type=shop,showroom,warehouse" },
     ],
   },
   {
@@ -47,8 +45,6 @@ const NAV_MENUS: { label: string; href: string; icon: LucideIcon; items: NavItem
       { label: "Apartments", href: "/properties?listingType=sale&type=apartment" },
       { label: "Villas", href: "/properties?listingType=sale&type=villa" },
       { label: "Plots & Land", href: "/properties?listingType=sale&type=plot,land" },
-      { label: "Office Space", href: "/properties?listingType=sale&type=office" },
-      { label: "Shops & Warehouse", href: "/properties?listingType=sale&type=shop,showroom,warehouse" },
     ],
   },
   {
@@ -62,8 +58,6 @@ const NAV_MENUS: { label: string; href: string; icon: LucideIcon; items: NavItem
       { label: "Post PG / Co-living", href: "/post-property" },
       { label: "Post for Flatmates", href: "/post-property" },
       { label: "Post Plots & Land", href: "/post-property" },
-      { label: "Post Office Space", href: "/post-property" },
-      { label: "Post Shops & Warehouse", href: "/post-property" },
     ],
   },
   {
