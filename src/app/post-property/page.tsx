@@ -1881,6 +1881,17 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
                     </div>
                   </div>
 
+                  {/* Project / society name */}
+                  <Field label="Apartment / Project Name">
+                    <input
+                      type="text"
+                      value={form.projectName}
+                      onChange={(e) => set("projectName", e.target.value)}
+                      placeholder="e.g. Venkateshappa Layout, 6th Cross"
+                      className={UNDERLINE_FIELD}
+                    />
+                  </Field>
+
                   {/* Location / locality — suggests popular areas for the chosen city */}
                   <Field label="Location">
                     <LocalityInput
