@@ -1924,25 +1924,27 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
                         </Field>
                       )}
 
-                      {/* Bathrooms + balconies */}
-                      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                        <Field label="Bathrooms">
-                          <Select
-                            value={form.bathrooms}
-                            onChange={(v) => set("bathrooms", v)}
-                            options={BATHROOM_OPTIONS}
-                            placeholder="Select"
-                          />
-                        </Field>
-                        <Field label="Balconies">
-                          <Select
-                            value={form.balconies}
-                            onChange={(v) => set("balconies", v)}
-                            options={BALCONY_OPTIONS}
-                            placeholder="Select"
-                          />
-                        </Field>
-                      </div>
+                      {/* Bathrooms + balconies — PG rooms share these, so skip for PG */}
+                      {!isPG && (
+                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                          <Field label="Bathrooms">
+                            <Select
+                              value={form.bathrooms}
+                              onChange={(v) => set("bathrooms", v)}
+                              options={BATHROOM_OPTIONS}
+                              placeholder="Select"
+                            />
+                          </Field>
+                          <Field label="Balconies">
+                            <Select
+                              value={form.balconies}
+                              onChange={(v) => set("balconies", v)}
+                              options={BALCONY_OPTIONS}
+                              placeholder="Select"
+                            />
+                          </Field>
+                        </div>
+                      )}
 
                       {/* Floor + total floors */}
                       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
