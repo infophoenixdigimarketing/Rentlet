@@ -1704,7 +1704,9 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
                 <div className="mt-6 max-w-2xl space-y-5">
                   {/* Looking to — Rent / Sell / Buy */}
                   <div>
-                    <p className="text-sm font-semibold text-foreground">You&apos;re looking to</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      You&apos;re looking to<span className="text-brand-orange"> *</span>
+                    </p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {LOOKING_TO.map((opt) => (
                         <button
