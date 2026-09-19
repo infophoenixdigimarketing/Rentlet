@@ -33,6 +33,7 @@ import {
   X,
   MapPin,
   LocateFixed,
+  MoreHorizontal,
   type LucideIcon,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/Button";
@@ -480,6 +481,7 @@ const PROPERTY_TYPES: { label: string; icon: LucideIcon; tint: string }[] = [
   { label: "PG", icon: BedDouble, tint: "bg-fuchsia-50 text-fuchsia-600" },
   { label: "Commercial", icon: Store, tint: "bg-orange-50 text-orange-600" },
   { label: "Land", icon: LandPlot, tint: "bg-lime-50 text-lime-700" },
+  { label: "Other", icon: MoreHorizontal, tint: "bg-slate-100 text-slate-600" },
 ];
 
 // Card label -> the PropertyType the rest of the app understands.
@@ -1853,12 +1855,16 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
                     </p>
                     <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                       {PROPERTY_TYPES.map((t) => {
-                        const active = form.propertyType === t.label;
+                        // "Other" doesn't have a fixed label of its own — it's active once
+                        // "Other" has been clicked (propertyType === "") or once something's
+                        // been typed that isn't one of the preset tiles above it.
+                        const isPreset = PROPERTY_TYPES.some((p) => p.label !== "Other" && p.label === form.propertyType);
+                        const active = t.label === "Other" ? form.propertyType != null && !isPreset : form.propertyType === t.label;
                         return (
                           <button
                             key={t.label}
                             type="button"
-                            onClick={() => set("propertyType", t.label)}
+                            onClick={() => set("propertyType", t.label === "Other" ? "" : t.label)}
                             className={cn(
                               "flex flex-col items-center gap-2 rounded-xl border p-4 text-center transition-colors",
                               active
@@ -1879,6 +1885,21 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
                         );
                       })}
                     </div>
+                    {form.propertyType != null && !PROPERTY_TYPES.some((t) => t.label !== "Other" && t.label === form.propertyType) && (
+                      <>
+                        <input
+                          type="text"
+                          autoFocus
+                          value={form.propertyType}
+                          onChange={(e) => set("propertyType", e.target.value)}
+                          placeholder="e.g. Studio, Co-living, Guest House"
+                          className={cn(UNDERLINE_FIELD, "mt-3")}
+                        />
+                        {form.propertyType === "" && (
+                          <p className="mt-1.5 text-xs text-muted-foreground">Type your own property type above.</p>
+                        )}
+                      </>
+                    )}
                   </div>
 
                   {/* Project / society name — land just calls it "Project Name" */}
