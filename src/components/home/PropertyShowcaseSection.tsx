@@ -4,26 +4,41 @@ import { PropertyCard } from "@/components/property/PropertyCard";
 import { CarouselRow } from "@/components/home/CarouselRow";
 import { allProperties } from "@/lib/data/seed-properties";
 import { toPublicProperty } from "@/lib/public-property";
+import { searchProvider, type SearchFilters } from "@/lib/services/search.service";
 
-export function PropertyShowcaseSection({
+export async function PropertyShowcaseSection({
   title,
   subtitle,
   ids,
+  filters,
   viewAllHref,
   tone = "white",
+  limit = 6,
 }: {
   title: string;
   subtitle: string;
+  /** Fallback demo listings, shown only while no real listing matches `filters` yet. */
   ids: string[];
+  /** Same shape /properties search uses — real, admin-approved listings matching this win over `ids`. */
+  filters: SearchFilters;
   viewAllHref: string;
   /** alternates section backgrounds down the page so real photo-heavy sections don't blur together */
   tone?: "white" | "muted";
+  limit?: number;
 }) {
-  const properties = ids
-    .map((id) => allProperties.find((p) => p.id === id))
-    .filter((p) => p != null)
-    .filter((p) => p.status === "active" && p.verificationStatus === "approved")
-    .map(toPublicProperty);
+  // Same real-first/demo-fallback pattern already used by getFeatured() and the /properties
+  // search page — real, admin-approved listings replace the curated demo cards automatically
+  // the moment enough of them exist for this section, with zero further code changes needed.
+  const { items } = await searchProvider.search({ ...filters, sort: "newest" });
+  const real = items.slice(0, limit).map(toPublicProperty);
+  const properties =
+    real.length > 0
+      ? real
+      : ids
+          .map((id) => allProperties.find((p) => p.id === id))
+          .filter((p) => p != null)
+          .filter((p) => p.status === "active" && p.verificationStatus === "approved")
+          .map(toPublicProperty);
   if (properties.length === 0) return null;
 
   return (

@@ -211,10 +211,6 @@ const SHOWCASE_OVERRIDES: Record<string, Partial<Property>> = {
   s18: { title: "Premium PG for Women in Chembur", genderPreference: "female", images: ["/images/showcase/coliving.jpg"] },
   s30: { title: "Co-living Space in Porur", genderPreference: "any", images: ["/images/categories/flatmates.jpg"] },
   s42: { title: "Flatmate Wanted — Shared Room in Manikonda", propertyType: "flatmate", genderPreference: "any", images: ["/images/showcase/studio-1bhk.jpg"] },
-
-  // Luxury Villas (s28 also appears in Buy, s16 also appears in Rent — both genuinely are
-  // villas, so showing them again in a dedicated villas showcase is consistent, not a bug)
-  s40: { images: ["/images/categories/buy-property.jpg"] },
 };
 
 function applyShowcaseOverrides(properties: Property[]): Property[] {
@@ -237,9 +233,9 @@ export const buyShowcaseIds = ["s2", "s4", "s28", "s14", "s27"];
 export const landShowcaseIds = ["s5", "s17", "s29", "s41"];
 export const commercialShowcaseIds = ["s7", "s8", "s20", "s9", "s33"];
 export const pgFlatmatesShowcaseIds = ["s6", "s18", "s30", "s42"];
-// "p2" is featuredProperties' hand-authored villa (Adyar, Chennai) — resolves fine since
-// allProperties spreads featuredProperties + generatedProperties together, below.
-export const luxuryVillaShowcaseIds = ["p2", "s40", "s16", "s28"];
+// Lease rail — matches the header's Lease dropdown (residential + office/shop rent listings):
+// s1 apartment, s3 independent house, s16 villa, s7 office, s20 showroom, all listingType "rent".
+export const leaseShowcaseIds = ["s1", "s3", "s16", "s7", "s20"];
 
 // Full catalogue used by search/filter — the curated `featuredProperties` stay separately
 // exported (and included here) so the homepage's hand-picked rail is unaffected.

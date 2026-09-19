@@ -17,9 +17,9 @@ import { OwnerCTA } from "@/components/home/OwnerCTA";
 import { Testimonials } from "@/components/home/Testimonials";
 import { FAQ } from "@/components/home/FAQ";
 import { PropertyCardSkeleton } from "@/components/property/PropertyCardSkeleton";
-import { rentShowcaseIds, buyShowcaseIds, luxuryVillaShowcaseIds } from "@/lib/data/seed-properties";
+import { rentShowcaseIds, buyShowcaseIds, leaseShowcaseIds } from "@/lib/data/seed-properties";
 
-function FeaturedPropertiesSkeleton() {
+function ShowcaseSkeleton() {
   return (
     <section className="bg-muted py-14 lg:py-20">
       <div className="container-rentlet">
@@ -37,7 +37,7 @@ function FeaturedPropertiesSkeleton() {
 // Section order follows the latest spec's numbered sequence exactly (Hero -> Category cards ->
 // Featured Properties -> Popular Rentals/Sale/Residential Land/Commercial/PG & Co-Living ->
 // Popular Cities -> Why Rentlet -> Post Property CTA -> Footer[layout]); everything built in
-// earlier turns and not part of that numbered list (QuickCategories, Luxury Villas, Purpose
+// earlier turns and not part of that numbered list (QuickCategories, Lease Properties, Purpose
 // links, Trust, HowItWorks, Testimonials, FAQ) is kept, not removed, slotted in between.
 //
 // PG & Co-Living and Flatmates stay ONE combined section rather than being split in two: the
@@ -84,7 +84,7 @@ export default function Home() {
       <Hero />
       <TrustBenefits />
 
-      <Suspense fallback={<FeaturedPropertiesSkeleton />}>
+      <Suspense fallback={<ShowcaseSkeleton />}>
         <FeaturedProperties />
       </Suspense>
 
@@ -92,27 +92,39 @@ export default function Home() {
 
       <QuickCategories />
 
-      <PropertyShowcaseSection
-        title="Popular Rentals"
-        subtitle="Apartments, independent houses and villas — verified, brokerage-free."
-        ids={rentShowcaseIds}
-        viewAllHref="/properties?listingType=rent"
-        tone="white"
-      />
-      <PropertyShowcaseSection
-        title="Properties for Sale"
-        subtitle="Premium apartments, villas and independent houses across India."
-        ids={buyShowcaseIds}
-        viewAllHref="/properties?listingType=sale"
-        tone="muted"
-      />
-      <PropertyShowcaseSection
-        title="Luxury Villas"
-        subtitle="Premium, spacious villas for those who want more space and privacy."
-        ids={luxuryVillaShowcaseIds}
-        viewAllHref="/properties?type=villa"
-        tone="muted"
-      />
+      <Suspense fallback={<ShowcaseSkeleton />}>
+        <PropertyShowcaseSection
+          title="Popular Rentals"
+          subtitle="Apartments, independent houses and villas — verified, brokerage-free."
+          ids={rentShowcaseIds}
+          filters={{ listingType: "rent", propertyTypes: ["apartment", "independent_house", "villa"] }}
+          viewAllHref="/properties?listingType=rent"
+          tone="white"
+        />
+      </Suspense>
+      <Suspense fallback={<ShowcaseSkeleton />}>
+        <PropertyShowcaseSection
+          title="Properties for Sale"
+          subtitle="Premium apartments, villas and independent houses across India."
+          ids={buyShowcaseIds}
+          filters={{ listingType: "sale", propertyTypes: ["apartment", "independent_house", "villa"] }}
+          viewAllHref="/properties?listingType=sale"
+          tone="muted"
+        />
+      </Suspense>
+      <Suspense fallback={<ShowcaseSkeleton />}>
+        <PropertyShowcaseSection
+          title="Lease Properties"
+          subtitle="Houses, apartments, villas and commercial spaces available on lease."
+          ids={leaseShowcaseIds}
+          filters={{
+            listingType: "rent",
+            propertyTypes: ["independent_house", "apartment", "villa", "office", "shop", "showroom", "warehouse"],
+          }}
+          viewAllHref="/properties?listingType=rent&type=independent_house,apartment,villa,office,shop,showroom,warehouse"
+          tone="muted"
+        />
+      </Suspense>
 
       <WhyRentlet />
 
