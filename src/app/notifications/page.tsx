@@ -80,15 +80,26 @@ export default function NotificationsPage() {
           <h1 className="text-xl font-extrabold text-foreground">Notifications</h1>
           <p className="text-sm text-muted-foreground">{unread} unread</p>
         </div>
-        {unread > 0 && (
-          <button
-            type="button"
-            onClick={() => notificationsService.markAllRead()}
-            className="text-sm font-semibold text-brand-navy hover:underline"
-          >
-            Mark all read
-          </button>
-        )}
+        <div className="flex items-center gap-4">
+          {unread > 0 && (
+            <button
+              type="button"
+              onClick={() => notificationsService.markAllRead()}
+              className="text-sm font-semibold text-brand-navy hover:underline"
+            >
+              Mark all read
+            </button>
+          )}
+          {notifications.length > 0 && (
+            <button
+              type="button"
+              onClick={() => notificationsService.clearAll()}
+              className="text-sm font-semibold text-muted-foreground hover:text-red-600 hover:underline"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
       </div>
 
       {notifications.length === 0 ? (

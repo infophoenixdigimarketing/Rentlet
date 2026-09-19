@@ -87,15 +87,26 @@ export function NotificationBell({ className }: { className?: string }) {
         <div className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[88vw] overflow-hidden rounded-xl border border-border bg-white shadow-xl">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <p className="text-sm font-bold text-foreground">Notifications</p>
-            {unread > 0 && (
-              <button
-                type="button"
-                onClick={() => notificationsService.markAllRead()}
-                className="text-xs font-semibold text-brand-navy hover:underline"
-              >
-                Mark all read
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {unread > 0 && (
+                <button
+                  type="button"
+                  onClick={() => notificationsService.markAllRead()}
+                  className="text-xs font-semibold text-brand-navy hover:underline"
+                >
+                  Mark all read
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => notificationsService.clearAll()}
+                  className="text-xs font-semibold text-muted-foreground hover:text-red-600 hover:underline"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="max-h-96 overflow-y-auto">

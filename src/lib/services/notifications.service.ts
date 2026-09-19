@@ -100,6 +100,10 @@ export const notificationsService = {
     store = store.map((n) => ({ ...n, read: true }));
     emit();
   },
+  clearAll() {
+    store = [];
+    emit();
+  },
   push(type: NotificationType, body: string, href: string | null = null) {
     const notification: AppNotification = {
       id: `n${nextId++}`,

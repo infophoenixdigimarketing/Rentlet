@@ -47,18 +47,14 @@ const NAV_MENUS: { label: string; href: string; icon: LucideIcon; items: NavItem
       { label: "Plots & Land", href: "/properties?listingType=sale&type=plot,land" },
     ],
   },
+  // Every Sell submenu item pointed at the exact same /post-property URL (the wizard itself
+  // asks what you're posting) — a dropdown with one real destination was dead weight, so Sell
+  // is now a plain link like Rent Agreement/Post Property instead of a menu with no real items.
   {
     label: "Sell",
     href: "/post-property",
     icon: Tag,
-    items: [
-      { label: "Post a House", href: "/post-property" },
-      { label: "Post an Apartment", href: "/post-property" },
-      { label: "Post a Villa", href: "/post-property" },
-      { label: "Post PG / Co-living", href: "/post-property" },
-      { label: "Post for Flatmates", href: "/post-property" },
-      { label: "Post Plots & Land", href: "/post-property" },
-    ],
+    items: [],
   },
   {
     label: "Lease",
@@ -122,19 +118,21 @@ export function Header() {
               >
                 <menu.icon className="h-4 w-4 text-brand-orange" strokeWidth={2} />
                 {menu.label}
-                <ChevronDown className="h-3.5 w-3.5 transition-transform group-hover:rotate-180" />
+                {menu.items.length > 0 && <ChevronDown className="h-3.5 w-3.5 transition-transform group-hover:rotate-180" />}
               </Link>
-              <div className="invisible    absolute left-0 top-full z-50 w-48 translate-y-1 rounded-xl border border-border bg-white p-1.5 opacity-0 shadow-xl shadow-black/10 transition-all group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
-                {menu.items.map((item) => (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    className="block rounded-lg px-2.5 py-1 text-sm font-medium text-foreground/85 hover:bg-muted hover:text-brand-navy"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
+              {menu.items.length > 0 && (
+                <div className="invisible    absolute left-0 top-full z-50 w-48 translate-y-1 rounded-xl border border-border bg-white p-1.5 opacity-0 shadow-xl shadow-black/10 transition-all group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                  {menu.items.map((item) => (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      className="block rounded-lg px-2.5 py-1 text-sm font-medium text-foreground/85 hover:bg-muted hover:text-brand-navy"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </nav>
@@ -211,6 +209,19 @@ export function Header() {
       >
         <nav className="container-rentlet flex flex-col gap-1 py-3" aria-label="Mobile">
           {NAV_MENUS.map((menu) => {
+            if (menu.items.length === 0) {
+              return (
+                <Link
+                  key={menu.label}
+                  href={menu.href}
+                  onClick={closeMenu}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-bold text-foreground/85 hover:bg-muted"
+                >
+                  <menu.icon className="h-4 w-4 text-brand-orange" strokeWidth={2} />
+                  {menu.label}
+                </Link>
+              );
+            }
             const expanded = expandedMenu === menu.label;
             return (
               <div key={menu.label}>
