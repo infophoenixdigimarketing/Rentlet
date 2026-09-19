@@ -1,34 +1,17 @@
 import Link from "next/link";
-import {
-  Building2,
-  Building,
-  Home,
-  Briefcase,
-  Trees,
-  BedDouble,
-  Castle,
-  HardHat,
-  Users,
-  Layers,
-  Sprout,
-  Store,
-  type LucideIcon,
-} from "lucide-react";
+import { Building2, Home, Briefcase, Trees, BedDouble, Castle, Users, Layers, Sprout, type LucideIcon } from "lucide-react";
 import { quickCategories } from "@/lib/data/categories";
 
 const ICONS: Record<string, LucideIcon> = {
   "building-2": Building2,
-  building: Building,
   home: Home,
   briefcase: Briefcase,
   trees: Trees,
   "bed-double": BedDouble,
   castle: Castle,
-  "hard-hat": HardHat,
   users: Users,
   layers: Layers,
   sprout: Sprout,
-  store: Store,
 };
 
 export function QuickCategories() {

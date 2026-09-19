@@ -8,10 +8,7 @@ export const quickCategories: PropertyCategoryCard[] = [
   { id: "land", title: "Land & Plots", icon: "trees", propertyCount: 2870, imageUrl: "/images/categories/land.jpg", href: "/land" },
   { id: "pg", title: "PG / Hostel", icon: "bed-double", propertyCount: 6640, imageUrl: "/images/categories/pg.jpg", href: "/pg" },
   { id: "villas", title: "Villas", icon: "castle", propertyCount: 1560, imageUrl: "/images/categories/villas.jpg", href: "/properties?type=villa" },
-  { id: "new-projects", title: "New Projects", icon: "hard-hat", propertyCount: 420, imageUrl: "/images/categories/new-projects.jpg", href: "/new-projects" },
   { id: "flatmates", title: "Flatmates", icon: "users", propertyCount: 3980, imageUrl: "/images/categories/flatmates.jpg", href: "/flatmates" },
   { id: "independent-floors", title: "Independent Floors", icon: "layers", propertyCount: 2140, imageUrl: "/images/categories/independent-houses.jpg", href: "/properties?type=independent_house" },
   { id: "farm-houses", title: "Farm Houses", icon: "sprout", propertyCount: 640, imageUrl: "/images/categories/villas.jpg", href: "/properties?type=villa" },
-  { id: "office-space", title: "Office Space", icon: "building", propertyCount: 1870, imageUrl: "/images/categories/commercial.jpg", href: "/properties?type=office" },
-  { id: "shops-warehouses", title: "Shops & Warehouses", icon: "store", propertyCount: 980, imageUrl: "/images/categories/commercial.jpg", href: "/properties?type=shop,showroom,warehouse" },
 ];
