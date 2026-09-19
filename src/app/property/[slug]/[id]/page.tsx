@@ -188,7 +188,7 @@ export default async function PropertyDetailPage(props: PageProps<"/property/[sl
           <section className="mt-8">
             <h2 className="text-lg font-bold text-foreground">Reviews</h2>
             <div className="mt-3">
-              <ReviewsSection />
+              <ReviewsSection propertyId={property.id} />
             </div>
           </section>
         </div>
