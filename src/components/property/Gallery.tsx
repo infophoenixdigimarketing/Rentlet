@@ -136,7 +136,10 @@ export function Gallery({ property }: { property: Property }) {
       )}
 
       {lightbox && (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-black/95">
+        // z-[1200] — Leaflet's own CSS puts its zoom controls at z-index 1000 (see
+        // LocationMap's map further down this same page), which used to render on top of this
+        // lightbox at z-[100] once the page behind it scrolled.
+        <div className="fixed inset-0 z-1200 flex flex-col bg-black/95">
           <div className="flex items-center justify-between p-4">
             <span className="text-sm font-medium text-white/70">
               {active + 1} / {photos.length}

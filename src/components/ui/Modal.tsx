@@ -33,7 +33,9 @@ export function Modal({
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
+    // z-1200 — above Leaflet's own z-index 1000 map controls (see Gallery.tsx's lightbox for
+    // the same fix), so a modal opened on a page with a map never renders behind it.
+    <div className="fixed inset-0 z-1200 flex items-end justify-center sm:items-center sm:p-4">
       <div
         className="absolute inset-0 bg-brand-navy-dark/60 backdrop-blur-sm animate-fade-up"
         style={{ animationDuration: "200ms" }}
