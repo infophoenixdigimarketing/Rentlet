@@ -12,10 +12,10 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
       { label: "Rent", href: "/properties?listingType=rent" },
       { label: "Buy", href: "/properties?listingType=sale" },
       { label: "Sell", href: "/post-property" },
-      { label: "Land", href: "/properties?type=plot,land" },
-      { label: "Commercial", href: "/properties?type=office,shop,showroom,warehouse" },
-      { label: "PG", href: "/properties?type=pg" },
-      { label: "Flatmates", href: "/properties?type=flatmate" },
+      {
+        label: "Lease",
+        href: "/properties?listingType=rent&type=independent_house,apartment,villa,office,shop,showroom,warehouse",
+      },
     ],
   },
   {
