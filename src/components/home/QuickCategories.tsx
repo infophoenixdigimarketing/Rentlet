@@ -25,7 +25,11 @@ export function QuickCategories() {
           </p>
         </div>
 
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8 lg:gap-4">
+        {/* 9 categories total — grid-cols-3 (3 clean rows) up to lg, then grid-cols-9 (one
+            full row) at desktop. Both divide evenly into 9, so there's never a stranded last
+            card sitting alone with a big empty gap next to it, whatever the count becomes if
+            categories are added/removed later, keep the column count a divisor of the total. */}
+        <div className="mt-8 grid grid-cols-3 gap-3 lg:grid-cols-9 lg:gap-4">
           {quickCategories.map((cat) => {
             const Icon = ICONS[cat.icon] ?? Building2;
             return (
