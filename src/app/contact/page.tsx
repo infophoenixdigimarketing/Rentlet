@@ -29,13 +29,18 @@ export default function ContactPage() {
             <span className="block text-xs text-muted-foreground">www.rentlet.in</span>
           </span>
         </a>
-        <div className="flex items-start gap-3 rounded-2xl border border-border bg-white p-4">
+        <a
+          href="https://www.google.com/maps/search/?api=1&query=Bengaluru%2C+Karnataka%2C+India"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-start gap-3 rounded-2xl border border-border bg-white p-4 hover:border-brand-orange/40"
+        >
           <MapPin className="h-5 w-5 shrink-0 text-brand-orange" />
           <span>
             <span className="block text-sm font-semibold text-foreground">Office</span>
             <span className="block text-xs text-muted-foreground">Bengaluru, Karnataka, India</span>
           </span>
-        </div>
+        </a>
       </div>
       <p className="mt-2">
         For property-specific queries, use the Contact / Call / WhatsApp buttons on the listing itself —
