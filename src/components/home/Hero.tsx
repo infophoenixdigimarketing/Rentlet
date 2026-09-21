@@ -65,7 +65,7 @@ export function Hero() {
         </div>
 
         {/* Top row: trust badge on the left, headline + subtext on the top right */}
-        <div className="flex animate-fade-up flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+        <div className="hero-top-row flex animate-fade-up flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           <span className="inline-flex w-fit items-center gap-2 rounded-full bg-gradient-to-r from-brand-orange to-brand-orange-dark px-3.5 py-1.5 text-xs font-bold text-white shadow-lg shadow-brand-orange/30 ring-1 ring-white/20">
             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-brand-orange">
               <ShieldCheck className="h-3 w-3" />
@@ -74,7 +74,7 @@ export function Hero() {
           </span>
 
           <div className="max-w-2xl sm:text-right">
-            <h1 className="text-lg font-extrabold leading-tight text-white sm:text-xl lg:text-2xl">
+            <h1 className="hero-headline text-lg font-extrabold leading-tight text-white sm:text-xl lg:text-2xl">
               Find a Place You&apos;ll Love to Call Home
             </h1>
           </div>
