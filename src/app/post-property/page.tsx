@@ -1712,7 +1712,14 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
                         <button
                           key={opt}
                           type="button"
-                          onClick={() => set("lookingTo", opt)}
+                          onClick={() => {
+                            set("lookingTo", opt);
+                            // Land isn't offered as a Rent type below (Lease and Sell both
+                            // still show it) — clear a stale "Land" pick when switching to
+                            // Rent, so nothing is silently submitted under a type that's no
+                            // longer shown as chosen.
+                            if (opt === "Rent" && form.propertyType === "Land") set("propertyType", null);
+                          }}
                           className={cn(
                             "rounded-full border px-6 py-2 text-sm font-semibold transition-colors",
                             form.lookingTo === opt
@@ -1856,7 +1863,10 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
                       Property Type<span className="text-brand-orange"> *</span>
                     </p>
                     <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                      {PROPERTY_TYPES.map((t) => {
+                      {/* Land isn't offered under plain Rent (Lease and Sell both still show
+                          it) — a bare rental of a vacant plot isn't a listing flow this app
+                          otherwise supports. */}
+                      {PROPERTY_TYPES.filter((t) => t.label !== "Land" || form.lookingTo !== "Rent").map((t) => {
                         // "Other" doesn't have a fixed label of its own — it's active once
                         // "Other" has been clicked (propertyType === "") or once something's
                         // been typed that isn't one of the preset tiles above it.
