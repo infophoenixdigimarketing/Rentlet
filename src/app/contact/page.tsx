@@ -30,7 +30,9 @@ export default function ContactPage() {
           </span>
         </a>
         <a
-          href="https://www.google.com/maps/search/?api=1&query=BMR+Enclave%2C+46%2F2%2C+Kudlu+Gate%2C+Krishna+Reddy+Layout%2C+Hosapalaya%2C+Muneshwara+Nagar%2C+Bengaluru%2C+Karnataka+560068"
+          // "search" shows a results list (nearby matches) when the address isn't an exact
+          // match in Google's database — "place" drops a single pin on this address instead.
+          href="https://www.google.com/maps/place/BMR+Enclave%2C+46%2F2%2C+Kudlu+Gate%2C+Krishna+Reddy+Layout%2C+Hosapalaya%2C+Muneshwara+Nagar%2C+Bengaluru%2C+Karnataka+560068"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-start gap-3 rounded-2xl border border-border bg-white p-4 hover:border-brand-orange/40"
