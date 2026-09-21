@@ -30,11 +30,12 @@ export default function ContactPage() {
           </span>
         </a>
         <a
-          // The text address never geocoded precisely, in any URL format — but the office has
-          // a real registered Google Business listing ("Phoenix Ventures Group"). Linking to
-          // that exact place (by name + its own coordinates) opens its full profile — photos,
-          // hours, reviews — instead of a bare, unlabeled pin.
-          href="https://www.google.com/maps/place/Phoenix+Ventures+Group/@12.8920535,77.639476,17z"
+          // Name + coordinates still wasn't reliable enough to guarantee Maps resolves to this
+          // exact registered listing ("Phoenix Ventures Group") — it can still fall back to a
+          // bare/generic pin if the text doesn't match precisely. The "cid" link below is that
+          // listing's own unique Google ID (decoded from the URL you get from Maps' own Share
+          // button on the listing), which opens that exact place every time, unambiguously.
+          href="https://www.google.com/maps?cid=764917165578611502"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-start gap-3 rounded-2xl border border-border bg-white p-4 hover:border-brand-orange/40"
