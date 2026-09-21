@@ -124,8 +124,20 @@ class FirebasePropertyRepository implements PropertyRepository {
   }
 
   async getById(id: string): Promise<Property | null> {
-    const snap = await getDoc(propertyDoc(id));
-    return mapDoc(snap, toProperty);
+    // Demo/seed listings (homepage showcase fallback cards, "s1"/"p2"/... ids) were never
+    // actually written to Firestore, so a getDoc() for one isn't just "not found" — Firestore's
+    // security rules reference the (nonexistent) document's own fields to decide readability,
+    // and evaluating a rule against a doc that doesn't exist throws "permission-denied" rather
+    // than returning an empty snapshot. Same real-first/demo-fallback pattern as getFeatured()
+    // and search() above: try Firestore, and only reach for the local catalogue if that fails.
+    try {
+      const snap = await getDoc(propertyDoc(id));
+      const real = mapDoc(snap, toProperty);
+      if (real) return real;
+    } catch {
+      /* fall through to the seed catalogue below */
+    }
+    return allProperties.find((p) => p.id === id) ?? null;
   }
 
   async getBySlugAndId(slug: string, id: string): Promise<Property | null> {
