@@ -30,9 +30,11 @@ export default function ContactPage() {
           </span>
         </a>
         <a
-          // "search" shows a results list (nearby matches) when the address isn't an exact
-          // match in Google's database — "place" drops a single pin on this address instead.
-          href="https://www.google.com/maps/place/BMR+Enclave%2C+46%2F2%2C+Kudlu+Gate%2C+Krishna+Reddy+Layout%2C+Hosapalaya%2C+Muneshwara+Nagar%2C+Bengaluru%2C+Karnataka+560068"
+          // "search" showed a results list (nearby matches), and "place" dropped an unlabeled
+          // pin with no address info — neither resolves well for an address with no registered
+          // Place entity in Google's database. The classic "?q=" query format geocodes the
+          // text directly to a labeled pin instead of trying to match it to an existing place.
+          href="https://www.google.com/maps?q=BMR+Enclave%2C+46%2F2%2C+Kudlu+Gate%2C+Krishna+Reddy+Layout%2C+Hosapalaya%2C+Muneshwara+Nagar%2C+Bengaluru%2C+Karnataka+560068"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-start gap-3 rounded-2xl border border-border bg-white p-4 hover:border-brand-orange/40"
