@@ -1101,6 +1101,9 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
   const [editState, setEditState] = useState<"loading" | "unsupported" | "denied" | "ready" | null>(
     editId ? "loading" : null
   );
+  // Distinguishes "Custom visit time picked, box still empty" from "nothing picked yet" —
+  // form.visitTime alone can't tell those apart since both start out as "".
+  const [customVisitTime, setCustomVisitTime] = useState(false);
   // Each step renders fresh content at the top of the form — without this, advancing (or
   // jumping back via the rail) leaves the scroll position wherever it was on the last step,
   // so the next step can open off-screen until the user manually scrolls up.
@@ -2330,11 +2333,53 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
                   </div>
 
                   <Field label="Preferred visit time">
-                    <PillGroup
-                      value={form.visitTime}
-                      onChange={(v) => set("visitTime", v)}
-                      options={VISIT_TIME_OPTIONS}
-                    />
+                    <div className="flex flex-wrap gap-2">
+                      {VISIT_TIME_OPTIONS.map((o) => (
+                        <button
+                          key={o}
+                          type="button"
+                          onClick={() => {
+                            setCustomVisitTime(false);
+                            set("visitTime", o);
+                          }}
+                          className={cn(
+                            "rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors",
+                            form.visitTime === o
+                              ? "border-brand-navy bg-brand-navy text-white"
+                              : "border-border text-muted-foreground hover:bg-muted"
+                          )}
+                        >
+                          {o}
+                        </button>
+                      ))}
+                      {/* Custom — same "clear to reveal a text box" pattern as Property Type's
+                          Other tile, for a visit window that doesn't fit the three presets. */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomVisitTime(true);
+                          set("visitTime", "");
+                        }}
+                        className={cn(
+                          "rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors",
+                          customVisitTime || (form.visitTime !== "" && !VISIT_TIME_OPTIONS.includes(form.visitTime))
+                            ? "border-brand-navy bg-brand-navy text-white"
+                            : "border-border text-muted-foreground hover:bg-muted"
+                        )}
+                      >
+                        Custom
+                      </button>
+                    </div>
+                    {(customVisitTime || (form.visitTime !== "" && !VISIT_TIME_OPTIONS.includes(form.visitTime))) && (
+                      <input
+                        type="text"
+                        autoFocus
+                        value={form.visitTime}
+                        onChange={(e) => set("visitTime", e.target.value)}
+                        placeholder="e.g. Weekends only, after 6 PM"
+                        className={cn(UNDERLINE_FIELD, "mt-3")}
+                      />
+                    )}
                   </Field>
 
                   {/* Share location on map */}
