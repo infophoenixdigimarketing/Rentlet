@@ -177,19 +177,17 @@ html.site-translated .header-cta {
 }
 
 /* Hero headline — translated languages (Malayalam/Tamil especially) run long enough to wrap
-   the English version's one-line headline onto two. Stack the trust badge above it instead of
-   beside it (frees up the full row width) and shrink the headline with `clamp()` so it scales
-   down as far as it needs to in order to stay on one line, rather than wrapping. */
+   the English version's one-line headline onto two. Keeps the exact same side-by-side layout
+   as English (badge left, headline right) — just shrinks the headline with `clamp()` and lets
+   its box grow past max-w-2xl so the longer text has room to stay on one line instead of
+   wrapping or getting squeezed. */
 html.site-translated .hero-top-row {
-  flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
 }
 html.site-translated .hero-headline {
-  font-size: clamp(0.7rem, 2.6vw, 1.5rem);
+  font-size: clamp(0.65rem, 2.1vw, 1.5rem);
   white-space: nowrap;
-  max-width: 100%;
 }
 html.site-translated .hero-top-row > div {
-  max-width: 100%;
-  text-align: left;
+  max-width: none;
 }
