@@ -185,7 +185,7 @@ html.site-translated .hero-top-row {
   align-items: center;
 }
 html.site-translated .hero-headline {
-  font-size: clamp(0.65rem, 2.1vw, 1.5rem);
+  font-size: clamp(0.6rem, 1.4vw, 1.125rem);
   white-space: nowrap;
 }
 html.site-translated .hero-top-row > div {
