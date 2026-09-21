@@ -188,7 +188,11 @@ export function Gallery({ property }: { property: Property }) {
                 url={photos[active]}
                 seed={photoSeed(active)}
                 propertyType={property.propertyType}
-                className={cn("rounded-xl transition-[width,height] duration-200", zoomed ? "h-[220%] w-[220%]" : "h-full w-full")}
+                // Grew the box itself before (h-[220%]) — with object-contain that scales up any
+                // letterboxing right along with the photo, so scrolling into that extra space
+                // just showed more black instead of more of the image. A transform scales the
+                // already-fitted photo directly, which is what actually reads as "zoomed in".
+                className={cn("h-full w-full origin-center rounded-xl transition-transform duration-200", zoomed && "scale-[2.2]")}
                 fit="contain"
               />
             </div>
