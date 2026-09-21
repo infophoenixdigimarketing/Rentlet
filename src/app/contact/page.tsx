@@ -30,11 +30,11 @@ export default function ContactPage() {
           </span>
         </a>
         <a
-          // The full address doesn't geocode cleanly in any Maps URL format — the layout/nagar
-          // names in it aren't recognized landmarks in Google's data, whatever the link shape.
-          // Querying just the well-known "Kudlu Gate" landmark + pincode instead gets Maps to a
-          // precise, correctly-labeled pin; the full address still displays as text below.
-          href="https://www.google.com/maps?q=Kudlu+Gate%2C+Bengaluru%2C+Karnataka+560068"
+          // The text address never geocoded precisely, in any URL format — but the office has
+          // a real registered Google Business listing ("Phoenix Ventures Group"). Linking to
+          // that exact place (by name + its own coordinates) opens its full profile — photos,
+          // hours, reviews — instead of a bare, unlabeled pin.
+          href="https://www.google.com/maps/place/Phoenix+Ventures+Group/@12.8920535,77.639476,17z"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-start gap-3 rounded-2xl border border-border bg-white p-4 hover:border-brand-orange/40"
