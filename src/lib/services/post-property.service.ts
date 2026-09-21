@@ -50,7 +50,8 @@ export function buildProperty(
   id = `own${nextId}`,
   media: { images: string[]; videos: string[]; floorPlanUrl: string | null } = { images: [], videos: [], floorPlanUrl: null }
 ): Property {
-  const title = w.title.trim() || `${w.category ?? "Property"} for ${w.listingType === "rent" ? "Rent" : "Sale"} in ${w.locality}`;
+  const dealWord = w.listingType === "sale" ? "Sale" : w.listingType === "lease" ? "Lease" : "Rent";
+  const title = w.title.trim() || `${w.category ?? "Property"} for ${dealWord} in ${w.locality}`;
 
   const property: Property = {
     id,
@@ -67,7 +68,7 @@ export function buildProperty(
     category: CATEGORY_OF[w.category ?? "apartment"],
 
     price: w.listingType === "sale" ? num(w.price) : null,
-    rent: w.listingType === "rent" ? num(w.rent) : null,
+    rent: w.listingType !== "sale" ? num(w.rent) : null,
     deposit: num(w.deposit),
     maintenance: num(w.maintenance),
     negotiable: w.negotiable,

@@ -88,7 +88,7 @@ function PropertyRow({ property }: { property: Property }) {
   }
 
   async function markDone() {
-    const next = property.listingType === "rent" ? "rented" : "sold";
+    const next = property.listingType !== "sale" ? "rented" : "sold";
     setBusy("done");
     try {
       await ownerPropertiesService.setStatus(property.id, next);
@@ -185,7 +185,7 @@ function PropertyRow({ property }: { property: Property }) {
               disabled={busy === "done"}
               className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-60"
             >
-              <CheckCircle2 className="h-3.5 w-3.5" /> {busy === "done" ? "..." : `Mark as ${property.listingType === "rent" ? "Rented" : "Sold"}`}
+              <CheckCircle2 className="h-3.5 w-3.5" /> {busy === "done" ? "..." : `Mark as ${property.listingType !== "sale" ? "Rented" : "Sold"}`}
             </button>
           )}
           <button

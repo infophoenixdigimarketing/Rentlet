@@ -12,10 +12,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
       { label: "Rent", href: "/properties?listingType=rent" },
       { label: "Buy", href: "/properties?listingType=sale" },
       { label: "Sell", href: "/post-property" },
-      {
-        label: "Lease",
-        href: "/properties?listingType=rent&type=independent_house,apartment,villa,office,shop,showroom,warehouse",
-      },
+      { label: "Lease", href: "/properties?listingType=lease" },
     ],
   },
   {

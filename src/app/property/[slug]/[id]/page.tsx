@@ -52,7 +52,7 @@ export default async function PropertyDetailPage(props: PageProps<"/property/[sl
   const similar = (await propertyRepository.getSimilar(raw, 3)).map(toPublicProperty);
 
   const url = `${SITE_URL}/property/${property.slug}/${property.id}`;
-  const amount = raw.listingType === "rent" ? raw.rent : raw.price;
+  const amount = raw.listingType !== "sale" ? raw.rent : raw.price;
 
   const listingJsonLd = {
     "@context": "https://schema.org",
@@ -80,7 +80,7 @@ export default async function PropertyDetailPage(props: PageProps<"/property/[sl
           price: amount,
           priceCurrency: "INR",
           availability: "https://schema.org/InStock",
-          ...(raw.listingType === "rent"
+          ...(raw.listingType !== "sale"
             ? { priceSpecification: { "@type": "UnitPriceSpecification", price: amount, priceCurrency: "INR", unitCode: "MON" } }
             : {}),
         }
@@ -140,7 +140,7 @@ export default async function PropertyDetailPage(props: PageProps<"/property/[sl
 
           <div className="mt-3 flex flex-wrap items-baseline gap-3">
             <span className="text-2xl font-extrabold text-brand-navy sm:text-3xl">{priceLabel(property)}</span>
-            {property.listingType === "rent" && property.deposit != null && (
+            {property.listingType !== "sale" && property.deposit != null && (
               <span className="text-sm text-muted-foreground">+ {formatINR(property.deposit)} deposit</span>
             )}
             {property.maintenance != null && property.maintenance > 0 && (

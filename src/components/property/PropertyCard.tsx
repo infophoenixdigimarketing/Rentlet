@@ -96,7 +96,7 @@ export function PropertyCard({ property: raw, className }: { property: Property;
       <Link href={href} className="flex flex-1 flex-col p-4 pb-0">
         <div className="flex items-baseline justify-between gap-2">
           <span className="text-lg font-extrabold text-brand-navy">{priceLabel(property)}</span>
-          {property.listingType === "rent" && property.deposit != null && (
+          {property.listingType !== "sale" && property.deposit != null && (
             <span className="text-xs font-medium text-muted-foreground">
               {formatINR(property.deposit)} Deposit
             </span>

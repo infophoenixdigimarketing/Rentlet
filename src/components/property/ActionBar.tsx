@@ -124,7 +124,7 @@ export function ActionBar({ property }: { property: Property }) {
         >
           <Share2 className="h-4 w-4" /> Share
         </button>
-        {property.listingType === "rent" && (
+        {property.listingType !== "sale" && (
           <button
             type="button"
             onClick={() => setAgreementOpen(true)}

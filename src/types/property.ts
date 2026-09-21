@@ -2,7 +2,12 @@
 // Lives under apps/web/src/types for now; promoted to packages/types once
 // apps/admin exists and workspaces are wired (see docs/00-architecture.md).
 
-export type ListingType = "rent" | "sale";
+// "lease" was collapsed into "rent" for a while (same rent/deposit fields, same UI treatment
+// everywhere), which is exactly why a plain Rent search used to also surface Lease listings —
+// nothing in storage told them apart. It's a real third value now; every `=== "rent"` check
+// elsewhere that means "treat like a rental" reads as `!== "sale"` instead, and only actual
+// filtering/matching should compare against the specific value.
+export type ListingType = "rent" | "sale" | "lease";
 
 export type PropertyCategory =
   | "residential"

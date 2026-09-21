@@ -48,7 +48,7 @@ const TINT: Record<string, string> = {
 export function PropertyInfoGrid({ property: p }: { property: Property }) {
   const items = [
     p.bedrooms != null && { icon: BedDouble, label: "Bedrooms", value: `${p.bedrooms} BHK` },
-    p.listingType === "rent" && p.bedrooms != null && {
+    p.listingType !== "sale" && p.bedrooms != null && {
       icon: Users,
       label: "People Allowed",
       value: `Up to ${maxOccupancy(p.bedrooms)} people`,

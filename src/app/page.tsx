@@ -117,11 +117,8 @@ export default function Home() {
           title="Lease Properties"
           subtitle="Houses, apartments, villas and commercial spaces available on lease."
           ids={leaseShowcaseIds}
-          filters={{
-            listingType: "rent",
-            propertyTypes: ["independent_house", "apartment", "villa", "office", "shop", "showroom", "warehouse"],
-          }}
-          viewAllHref="/properties?listingType=rent&type=independent_house,apartment,villa,office,shop,showroom,warehouse"
+          filters={{ listingType: "lease" }}
+          viewAllHref="/properties?listingType=lease"
           tone="muted"
         />
       </Suspense>

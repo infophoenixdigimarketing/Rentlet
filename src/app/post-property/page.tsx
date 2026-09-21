@@ -532,7 +532,7 @@ function propertyToFormPatch(p: Property): Partial<FormState> | null {
   const hasCar = p.amenities.includes("Car Parking");
 
   return {
-    lookingTo: p.listingType === "sale" ? "Sell" : "Rent",
+    lookingTo: p.listingType === "sale" ? "Sell" : p.listingType === "lease" ? "Lease" : "Rent",
     name: p.ownerName,
     city: p.city,
     propertyType: label,
@@ -1293,7 +1293,10 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
   // shared submitProperty() pipeline lands it in search, the owner dashboard and the
   // admin moderation queue.
   function buildWizardState(): WizardState {
-    const listingType: ListingType = rentLike ? "rent" : "sale";
+    // "Rent" and "Lease" used to both collapse into the same stored "rent" value — nothing
+    // told a leased listing apart from a rented one, so a plain Rent search would also surface
+    // every Lease listing (and vice versa). Each of the three choices now keeps its own identity.
+    const listingType: ListingType = form.lookingTo === "Sell" ? "sale" : form.lookingTo === "Lease" ? "lease" : "rent";
     const dealLabel = rentLike ? form.lookingTo : "Sale";
     const category: PropertyType =
       intent.kind === "Land/Plot"
@@ -1388,7 +1391,7 @@ function PostPropertyWizard({ user, editId }: { user: AuthUser; editId: string |
       longitude: pin?.lng ?? initialWizardState.longitude,
       furnishing: FURNISHING_MAP[form.furnishing] ?? null,
       amenities: [...new Set([...parkingAmenities, ...form.amenities])],
-      rent: listingType === "rent" ? form.expectedPrice : "",
+      rent: listingType !== "sale" ? form.expectedPrice : "",
       price: listingType === "sale" ? form.expectedPrice : "",
       deposit: isRent ? form.deposit : "",
       maintenance: form.maintenance,

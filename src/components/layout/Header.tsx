@@ -58,14 +58,17 @@ const NAV_MENUS: { label: string; href: string; icon: LucideIcon; items: NavItem
   },
   {
     label: "Lease",
-    href: "/properties?listingType=rent&type=independent_house,apartment,villa,office,shop,showroom,warehouse",
+    // "lease" is its own listingType now, not a curated slice of "rent" — Lease and Rent
+    // listings used to be stored identically, so this same URL shape was pulling in every
+    // Rent listing too, not just leased ones.
+    href: "/properties?listingType=lease",
     icon: FileSignature,
     items: [
-      { label: "Houses", href: "/properties?listingType=rent&type=independent_house" },
-      { label: "Apartments", href: "/properties?listingType=rent&type=apartment" },
-      { label: "Villas", href: "/properties?listingType=rent&type=villa" },
-      { label: "Office Space", href: "/properties?listingType=rent&type=office" },
-      { label: "Shops & Warehouse", href: "/properties?listingType=rent&type=shop,showroom,warehouse" },
+      { label: "Houses", href: "/properties?listingType=lease&type=independent_house" },
+      { label: "Apartments", href: "/properties?listingType=lease&type=apartment" },
+      { label: "Villas", href: "/properties?listingType=lease&type=villa" },
+      { label: "Office Space", href: "/properties?listingType=lease&type=office" },
+      { label: "Shops & Warehouse", href: "/properties?listingType=lease&type=shop,showroom,warehouse" },
     ],
   },
 ];

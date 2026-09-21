@@ -22,7 +22,7 @@ export function parseFilters(params: RawSearchParams): SearchFilters {
   if (city) filters.city = city;
 
   const listingType = first(params.listingType);
-  if (listingType === "rent" || listingType === "sale") filters.listingType = listingType;
+  if (listingType === "rent" || listingType === "sale" || listingType === "lease") filters.listingType = listingType;
 
   const propertyTypes = list(params.type) as PropertyType[];
   if (propertyTypes.length) filters.propertyTypes = propertyTypes;

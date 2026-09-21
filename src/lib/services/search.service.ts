@@ -14,7 +14,7 @@ export type SortOption = "relevance" | "newest" | "price_asc" | "price_desc" | "
 
 export interface SearchFilters {
   city?: string;
-  listingType?: "rent" | "sale";
+  listingType?: "rent" | "sale" | "lease";
   propertyTypes?: PropertyType[];
   minPrice?: number;
   maxPrice?: number;
@@ -48,7 +48,7 @@ export interface SearchProvider {
 }
 
 function priceOf(p: Property): number {
-  return p.listingType === "rent" ? p.rent ?? 0 : p.price ?? 0;
+  return p.listingType !== "sale" ? p.rent ?? 0 : p.price ?? 0;
 }
 
 // --- "Nearest first" support -------------------------------------------------

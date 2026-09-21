@@ -47,7 +47,7 @@ export function PropertyListRow({ property }: { property: Property }) {
           {property.bedrooms != null && <span className="inline-flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" /> {property.bedrooms} BHK</span>}
           {property.bathrooms != null && <span className="inline-flex items-center gap-1"><Bath className="h-3.5 w-3.5" /> {property.bathrooms} Bath</span>}
           {property.builtUpArea != null && <span className="inline-flex items-center gap-1"><Ruler className="h-3.5 w-3.5" /> {property.builtUpArea.toLocaleString("en-IN")} sq.ft</span>}
-          {property.deposit != null && property.listingType === "rent" && <span>{formatINR(property.deposit)} Deposit</span>}
+          {property.deposit != null && property.listingType !== "sale" && <span>{formatINR(property.deposit)} Deposit</span>}
         </div>
 
         {property.amenities.length > 0 && (

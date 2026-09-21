@@ -30,8 +30,8 @@ export function formatArea(sqft: number): string {
 }
 
 /** Primary listing price line, e.g. "₹28,000/month" or "₹85 L". */
-export function priceLabel(p: { listingType: "rent" | "sale"; rent: number | null; price: number | null }): string {
-  if (p.listingType === "rent" && p.rent != null) return `${formatINR(p.rent)}/month`;
+export function priceLabel(p: { listingType: "rent" | "sale" | "lease"; rent: number | null; price: number | null }): string {
+  if (p.listingType !== "sale" && p.rent != null) return `${formatINR(p.rent)}/month`;
   if (p.listingType === "sale" && p.price != null) return formatINR(p.price, true);
   return "Price on request";
 }

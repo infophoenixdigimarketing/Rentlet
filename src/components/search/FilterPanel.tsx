@@ -76,7 +76,7 @@ export function FilterPanel({
     router.push(`/properties?${filtersToSearchString(next)}`);
   }
 
-  function pickListingType(lt: "rent" | "sale") {
+  function pickListingType(lt: "rent" | "sale" | "lease") {
     const nextType = filters.listingType === lt ? undefined : lt;
 
     // Choosing "Rent" auto-orders results by nearest place. Reuse an existing reference
@@ -141,7 +141,17 @@ export function FilterPanel({
           Filters apply as you change them — Rent also orders results by nearest place.
         </p>
         <div className="mt-2 flex gap-2">
-          {((filters.listingType === "sale" ? ["sale"] : ["rent"]) as ("rent" | "sale")[]).map((lt) => (
+          {/* Shows just the current context as a label, not a switcher between all three —
+              matches how this page is always reached already scoped to one of Rent/Buy/Lease
+              (nav links, homepage sections). Lease used to fall through to the "rent" default
+              here and get mislabeled "Rent" since it wasn't a real listingType value yet. */}
+          {(
+            [filters.listingType === "sale" ? "sale" : filters.listingType === "lease" ? "lease" : "rent"] as (
+              | "rent"
+              | "sale"
+              | "lease"
+            )[]
+          ).map((lt) => (
             <button
               key={lt}
               type="button"
@@ -151,7 +161,7 @@ export function FilterPanel({
                 filters.listingType === lt ? "border-brand-navy bg-brand-navy text-white" : "border-border text-foreground hover:bg-muted"
               )}
             >
-              {lt === "sale" ? "Buy" : "Rent"}
+              {lt === "sale" ? "Buy" : lt === "lease" ? "Lease" : "Rent"}
             </button>
           ))}
         </div>
