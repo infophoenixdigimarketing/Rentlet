@@ -4,7 +4,7 @@
 // property-type icon watermark, so cards still feel distinct instead of showing nothing.
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import {
   Building2,
   Home,
@@ -55,6 +55,7 @@ export function PropertyImage({
   city,
   image,
   className,
+  style,
 }: {
   id: string;
   propertyType: PropertyType;
@@ -64,13 +65,14 @@ export function PropertyImage({
    *  generated placeholder below when absent, or if the URL fails to load. */
   image?: string | null;
   className?: string;
+  style?: CSSProperties;
 }) {
   const [broken, setBroken] = useState(false);
 
   if (image && !broken) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- Firebase Storage URL, not a local /public asset
-      <img src={image} alt="" onError={() => setBroken(true)} className={cn("object-cover", className)} />
+      <img src={image} alt="" style={style} onError={() => setBroken(true)} className={cn("object-cover", className)} />
     );
   }
 
@@ -79,6 +81,7 @@ export function PropertyImage({
 
   return (
     <div
+      style={style}
       className={cn(
         "relative flex items-center justify-center overflow-hidden bg-gradient-to-br",
         gradient,

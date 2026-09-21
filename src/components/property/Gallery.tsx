@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { Expand, X, ChevronLeft, ChevronRight, Play, LayoutGrid, ImageIcon, ZoomIn, ZoomOut } from "lucide-react";
 import { PropertyImage } from "@/components/ui/PropertyImage";
 import { cn } from "@/lib/utils";
@@ -18,36 +18,42 @@ function PhotoSlide({
   seed,
   propertyType,
   className,
+  style,
   fit = "cover",
 }: {
   url?: string;
   seed: string;
   propertyType: Property["propertyType"];
   className?: string;
+  style?: CSSProperties;
   /** "cover" fills a fixed-aspect box (thumbnails, main slide) — "contain" shows the whole,
    *  un-cropped photo (the fullscreen lightbox, where cropping is exactly what shouldn't happen). */
   fit?: "cover" | "contain";
 }) {
   if (url) {
     // eslint-disable-next-line @next/next/no-img-element -- Firebase Storage URL, not a local asset next/image needs to optimize
-    return <img src={url} alt="" className={cn(fit === "cover" ? "object-cover" : "object-contain", className)} />;
+    return <img src={url} alt="" style={style} className={cn(fit === "cover" ? "object-cover" : "object-contain", className)} />;
   }
-  return <PropertyImage id={seed} propertyType={propertyType} className={className} />;
+  return <PropertyImage id={seed} propertyType={propertyType} className={className} style={style} />;
 }
+
+const ZOOM_MIN = 1;
+const ZOOM_MAX = 3;
+const ZOOM_STEP = 0.5;
 
 export function Gallery({ property }: { property: Property }) {
   const [tab, setTab] = useState<Tab>("photos");
   const [active, setActive] = useState(0);
   const [lightbox, setLightbox] = useState(false);
-  const [zoomed, setZoomed] = useState(false);
+  const [zoom, setZoom] = useState(ZOOM_MIN);
 
   function closeLightbox() {
     setLightbox(false);
-    setZoomed(false);
+    setZoom(ZOOM_MIN);
   }
   function stepPhoto(delta: number) {
     setActive((i) => (i + delta + photos.length) % photos.length);
-    setZoomed(false);
+    setZoom(ZOOM_MIN);
   }
 
   const hasRealPhotos = property.images.length > 0;
@@ -62,9 +68,18 @@ export function Gallery({ property }: { property: Property }) {
   return (
     <div>
       <div className="relative overflow-hidden rounded-2xl">
-        <div className="relative h-64 w-full sm:h-96 lg:h-[26rem]">
+        <div className="relative h-64 w-full bg-black sm:h-96 lg:h-[26rem]">
           {tab === "photos" && (
-            <PhotoSlide url={photos[active]} seed={photoSeed(active)} propertyType={property.propertyType} className="h-full w-full" />
+            // "contain" — a portrait (9:16) upload was getting cropped down to a thin slice by
+            // "cover" filling this landscape box. Letterboxes instead (bg-black above so the
+            // bars blend in), but nothing about the actual photo gets cut off anymore.
+            <PhotoSlide
+              url={photos[active]}
+              seed={photoSeed(active)}
+              propertyType={property.propertyType}
+              className="h-full w-full"
+              fit="contain"
+            />
           )}
           {tab === "floorplan" &&
             (floorPlanUrl ? (
@@ -157,18 +172,28 @@ export function Gallery({ property }: { property: Property }) {
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                aria-label={zoomed ? "Zoom out" : "Zoom in"}
-                onClick={() => setZoomed((z) => !z)}
-                className="rounded-full p-2 text-white hover:bg-white/10"
+                aria-label="Zoom out"
+                disabled={zoom <= ZOOM_MIN}
+                onClick={() => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))}
+                className="rounded-full p-2 text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent"
               >
-                {zoomed ? <ZoomOut className="h-5 w-5" /> : <ZoomIn className="h-5 w-5" />}
+                <ZoomOut className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                aria-label="Zoom in"
+                disabled={zoom >= ZOOM_MAX}
+                onClick={() => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))}
+                className="rounded-full p-2 text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent"
+              >
+                <ZoomIn className="h-5 w-5" />
               </button>
               <button type="button" aria-label="Close fullscreen" onClick={closeLightbox} className="rounded-full p-2 text-white hover:bg-white/10">
                 <X className="h-5 w-5" />
               </button>
             </div>
           </div>
-          <div className="relative flex flex-1 items-center justify-center px-4 pb-6">
+          <div className="relative flex flex-1 items-center justify-center overflow-hidden px-4 pb-6">
             <button
               type="button"
               aria-label="Previous photo"
@@ -177,25 +202,19 @@ export function Gallery({ property }: { property: Property }) {
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <div
-              className={cn(
-                "h-full w-full max-w-3xl",
-                zoomed ? "overflow-auto cursor-zoom-out" : "overflow-hidden cursor-zoom-in"
-              )}
-              onClick={() => setZoomed((z) => !z)}
-            >
-              <PhotoSlide
-                url={photos[active]}
-                seed={photoSeed(active)}
-                propertyType={property.propertyType}
-                // Grew the box itself before (h-[220%]) — with object-contain that scales up any
-                // letterboxing right along with the photo, so scrolling into that extra space
-                // just showed more black instead of more of the image. A transform scales the
-                // already-fitted photo directly, which is what actually reads as "zoomed in".
-                className={cn("h-full w-full origin-center rounded-xl transition-transform duration-200", zoomed && "scale-[2.2]")}
-                fit="contain"
-              />
-            </div>
+            {/* Sized off the photo's own aspect ratio (h-full, w-auto) rather than a fixed
+                max-w-3xl box, so a portrait upload fills the available height properly instead
+                of sitting in a wide box with large black bars either side. No scroll/pan —
+                zoom is a plain transform scale, and going past the edges just clips (overflow-
+                hidden on the row above), per the "zoom buttons only, no scrolling" request. */}
+            <PhotoSlide
+              url={photos[active]}
+              seed={photoSeed(active)}
+              propertyType={property.propertyType}
+              className="h-full w-auto max-w-full origin-center rounded-xl transition-transform duration-200"
+              style={{ transform: `scale(${zoom})` }}
+              fit="contain"
+            />
             <button
               type="button"
               aria-label="Next photo"
