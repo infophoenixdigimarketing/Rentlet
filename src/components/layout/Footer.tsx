@@ -63,7 +63,7 @@ export function Footer() {
           <p className="mt-1.5 text-xs font-medium text-brand-orange">Serving India since 2026</p>
           <p className="mt-4 max-w-xs text-sm text-white/60">
             <span className="font-semibold text-white/80">Local Office (Kudlu Gate):</span> BMR Enclave,
-            46/2, Kudlu Gate, Krishna Reddy Layout, Bengaluru, Karnataka.
+            46/2, Kudlu Gate, Krishna Reddy Layout, Hosapalaya, Muneshwara Nagar, Bengaluru, Karnataka 560068.
           </p>
           <div className="mt-4 flex flex-col gap-1.5 text-sm text-white/70">
             <a href="tel:+919180105646" className="hover:text-white">+91 91801 05646</a>

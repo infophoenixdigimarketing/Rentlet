@@ -30,7 +30,7 @@ export default function ContactPage() {
           </span>
         </a>
         <a
-          href="https://www.google.com/maps/search/?api=1&query=Bengaluru%2C+Karnataka%2C+India"
+          href="https://www.google.com/maps/search/?api=1&query=BMR+Enclave%2C+46%2F2%2C+Kudlu+Gate%2C+Krishna+Reddy+Layout%2C+Hosapalaya%2C+Muneshwara+Nagar%2C+Bengaluru%2C+Karnataka+560068"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-start gap-3 rounded-2xl border border-border bg-white p-4 hover:border-brand-orange/40"
@@ -38,7 +38,9 @@ export default function ContactPage() {
           <MapPin className="h-5 w-5 shrink-0 text-brand-orange" />
           <span>
             <span className="block text-sm font-semibold text-foreground">Office</span>
-            <span className="block text-xs text-muted-foreground">Bengaluru, Karnataka, India</span>
+            <span className="block text-xs text-muted-foreground">
+              BMR Enclave, 46/2, Kudlu Gate, Krishna Reddy Layout, Hosapalaya, Muneshwara Nagar, Bengaluru, Karnataka 560068
+            </span>
           </span>
         </a>
       </div>
