@@ -193,7 +193,12 @@ export function Gallery({ property }: { property: Property }) {
               </button>
             </div>
           </div>
-          <div className="relative flex flex-1 items-center justify-center overflow-hidden px-4 pb-6">
+          <div
+            className={cn(
+              "relative flex flex-1 items-center justify-center px-4 pb-6",
+              zoom > ZOOM_MIN ? "overflow-auto" : "overflow-hidden"
+            )}
+          >
             <button
               type="button"
               aria-label="Previous photo"
@@ -202,17 +207,18 @@ export function Gallery({ property }: { property: Property }) {
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
-            {/* Sized off the photo's own aspect ratio (h-full, w-auto) rather than a fixed
-                max-w-3xl box, so a portrait upload fills the available height properly instead
-                of sitting in a wide box with large black bars either side. No scroll/pan —
-                zoom is a plain transform scale, and going past the edges just clips (overflow-
-                hidden on the row above), per the "zoom buttons only, no scrolling" request. */}
+            {/* Sized off the photo's own aspect ratio (height set directly, width auto) rather
+                than a fixed max-w-3xl box, so a portrait upload fills the available height
+                properly instead of sitting in a wide box with big black bars either side.
+                Zooming grows that height for real (not just a visual transform), so once it's
+                taller than the viewport this row's overflow-auto can actually scroll to it —
+                a transform-only scale doesn't reliably extend a container's scrollable area. */}
             <PhotoSlide
               url={photos[active]}
               seed={photoSeed(active)}
               propertyType={property.propertyType}
-              className="h-full w-auto max-w-full origin-center rounded-xl transition-transform duration-200"
-              style={{ transform: `scale(${zoom})` }}
+              className={cn("w-auto shrink-0 rounded-xl transition-[height] duration-200", zoom === ZOOM_MIN && "max-w-full")}
+              style={{ height: `${zoom * 100}%` }}
               fit="contain"
             />
             <button
