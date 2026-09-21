@@ -32,8 +32,16 @@ const NAV_MENUS: { label: string; href: string; icon: LucideIcon; items: NavItem
       { label: "Houses", href: "/properties?listingType=rent&type=independent_house" },
       { label: "Apartments", href: "/properties?listingType=rent&type=apartment" },
       { label: "Villas", href: "/properties?listingType=rent&type=villa" },
+      { label: "Duplex", href: "/properties?listingType=rent&type=independent_house" },
+      { label: "Independent Floor", href: "/properties?listingType=rent&type=independent_house" },
+      { label: "Penthouse", href: "/properties?listingType=rent&type=apartment" },
+      { label: "Farm House", href: "/properties?listingType=rent&type=villa" },
       { label: "PG / Co-living", href: "/properties?type=pg,flatmate" },
+      { label: "Commercial", href: "/properties?listingType=rent&type=office,shop,showroom,warehouse" },
       { label: "Flatmates", href: "/properties?type=flatmate" },
+      // No Land/Plots here on purpose — the post-property wizard doesn't let anyone post
+      // Land under a plain Rent either (renting raw land month-to-month isn't a flow this
+      // app supports); Lease's dropdown below is where a land listing belongs instead.
     ],
   },
   {
@@ -44,6 +52,11 @@ const NAV_MENUS: { label: string; href: string; icon: LucideIcon; items: NavItem
       { label: "Houses", href: "/properties?listingType=sale&type=independent_house" },
       { label: "Apartments", href: "/properties?listingType=sale&type=apartment" },
       { label: "Villas", href: "/properties?listingType=sale&type=villa" },
+      { label: "Duplex", href: "/properties?listingType=sale&type=independent_house" },
+      { label: "Independent Floor", href: "/properties?listingType=sale&type=independent_house" },
+      { label: "Penthouse", href: "/properties?listingType=sale&type=apartment" },
+      { label: "Farm House", href: "/properties?listingType=sale&type=villa" },
+      { label: "Commercial", href: "/properties?listingType=sale&type=office,shop,showroom,warehouse" },
       { label: "Plots & Land", href: "/properties?listingType=sale&type=plot,land" },
     ],
   },
@@ -67,8 +80,13 @@ const NAV_MENUS: { label: string; href: string; icon: LucideIcon; items: NavItem
       { label: "Houses", href: "/properties?listingType=lease&type=independent_house" },
       { label: "Apartments", href: "/properties?listingType=lease&type=apartment" },
       { label: "Villas", href: "/properties?listingType=lease&type=villa" },
+      { label: "Duplex", href: "/properties?listingType=lease&type=independent_house" },
+      { label: "Independent Floor", href: "/properties?listingType=lease&type=independent_house" },
+      { label: "Penthouse", href: "/properties?listingType=lease&type=apartment" },
+      { label: "Farm House", href: "/properties?listingType=lease&type=villa" },
       { label: "Office Space", href: "/properties?listingType=lease&type=office" },
       { label: "Shops & Warehouse", href: "/properties?listingType=lease&type=shop,showroom,warehouse" },
+      { label: "Plots & Land", href: "/properties?listingType=lease&type=plot,land" },
     ],
   },
 ];
