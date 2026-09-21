@@ -138,9 +138,13 @@ export function Header() {
         </nav>
 
         <div className="header-actions hidden items-center gap-1.5 lg:flex">
-          <Link href="/rental-agreement" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "header-secondary-cta hidden gap-1.5 xl:inline-flex")}>
+          <Link
+            href="/rental-agreement"
+            title="Rent Agreement"
+            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "header-secondary-cta hidden gap-1.5 xl:inline-flex")}
+          >
             <ScrollText className="h-4 w-4" strokeWidth={2} />
-            Rent Agreement
+            <span>Rent Agreement</span>
           </Link>
           <Link href="/post-property" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "header-cta hidden gap-1.5 xl:inline-flex")}>
             <PlusCircle className="h-4 w-4" strokeWidth={2} />

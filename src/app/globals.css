@@ -138,9 +138,10 @@ font {
  *  Malayalam / Tamil / Telugu / Kannada expand the nav text far more than
  *  Hindi, which pushed Language + Menu off the right edge. `site-translated`
  *  is set on <html> by GoogleTranslate.tsx whenever the language is not
- *  English; here we shrink the nav, hide the chevrons and drop the
- *  "Rent Agreement" bar link (still in the Lease dropdown + Menu panel) so
- *  the full desktop header still fits — same as English/Hindi.
+ *  English; here we shrink the nav, hide the chevrons and collapse "Rent
+ *  Agreement" down to its icon (its translated label runs long enough to
+ *  overflow the header) so the full desktop header still fits, without
+ *  losing the link off the bar entirely — it's still in the Menu panel too.
  * ------------------------------------------------------------------ */
 html.site-translated .header-row {
   gap: 0.5rem;
@@ -158,7 +159,12 @@ html.site-translated .header-primary-nav .group > a > svg:last-child {
   display: none;
 }
 html.site-translated .header-secondary-cta {
-  display: none !important;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  gap: 0;
+}
+html.site-translated .header-secondary-cta span {
+  display: none;
 }
 html.site-translated .header-actions {
   gap: 0.25rem;
