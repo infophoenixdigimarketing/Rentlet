@@ -94,6 +94,13 @@ function mapReview(id: string, data: Record<string, unknown>): Review {
   };
 }
 
+// useSyncExternalStore requires getSnapshot() to return a *stable* reference when nothing has
+// changed — a fresh `[]` literal on every call reads as "changed" on every render and sends
+// React into an infinite "Maximum update depth exceeded" loop (same class of bug fixed earlier
+// in FirebaseVisitsService). Seeding the cache with this one shared empty array before the
+// listener resolves keeps the pre-data snapshot referentially stable.
+const EMPTY: Review[] = [];
+
 class FirebaseReviewsService implements ReviewsService {
   private cache = new Map<string, Review[]>();
   private listeners = new Map<string, Set<() => void>>();
@@ -101,6 +108,7 @@ class FirebaseReviewsService implements ReviewsService {
 
   private ensureSubscribed(propertyId: string) {
     if (this.unsubs.has(propertyId)) return;
+    this.cache.set(propertyId, EMPTY);
     const q = query(collection(getDb(), COLLECTION), where("propertyId", "==", propertyId), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
       this.cache.set(propertyId, snap.docs.map((d) => mapReview(d.id, d.data())));
@@ -114,7 +122,7 @@ class FirebaseReviewsService implements ReviewsService {
   }
 
   getForProperty(propertyId: string): Review[] {
-    return this.cache.get(propertyId) ?? [];
+    return this.cache.get(propertyId) ?? EMPTY;
   }
 
   subscribe(propertyId: string, listener: () => void) {
