@@ -30,11 +30,11 @@ export default function ContactPage() {
           </span>
         </a>
         <a
-          // "search" showed a results list (nearby matches), and "place" dropped an unlabeled
-          // pin with no address info — neither resolves well for an address with no registered
-          // Place entity in Google's database. The classic "?q=" query format geocodes the
-          // text directly to a labeled pin instead of trying to match it to an existing place.
-          href="https://www.google.com/maps?q=BMR+Enclave%2C+46%2F2%2C+Kudlu+Gate%2C+Krishna+Reddy+Layout%2C+Hosapalaya%2C+Muneshwara+Nagar%2C+Bengaluru%2C+Karnataka+560068"
+          // The full address doesn't geocode cleanly in any Maps URL format — the layout/nagar
+          // names in it aren't recognized landmarks in Google's data, whatever the link shape.
+          // Querying just the well-known "Kudlu Gate" landmark + pincode instead gets Maps to a
+          // precise, correctly-labeled pin; the full address still displays as text below.
+          href="https://www.google.com/maps?q=Kudlu+Gate%2C+Bengaluru%2C+Karnataka+560068"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-start gap-3 rounded-2xl border border-border bg-white p-4 hover:border-brand-orange/40"
