@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Expand, X, ChevronLeft, ChevronRight, Play, LayoutGrid, ImageIcon } from "lucide-react";
+import { Expand, X, ChevronLeft, ChevronRight, Play, LayoutGrid, ImageIcon, ZoomIn, ZoomOut } from "lucide-react";
 import { PropertyImage } from "@/components/ui/PropertyImage";
 import { cn } from "@/lib/utils";
 import type { Property } from "@/types/property";
@@ -39,6 +39,16 @@ export function Gallery({ property }: { property: Property }) {
   const [tab, setTab] = useState<Tab>("photos");
   const [active, setActive] = useState(0);
   const [lightbox, setLightbox] = useState(false);
+  const [zoomed, setZoomed] = useState(false);
+
+  function closeLightbox() {
+    setLightbox(false);
+    setZoomed(false);
+  }
+  function stepPhoto(delta: number) {
+    setActive((i) => (i + delta + photos.length) % photos.length);
+    setZoomed(false);
+  }
 
   const hasRealPhotos = property.images.length > 0;
   const photos: (string | undefined)[] = hasRealPhotos
@@ -144,32 +154,49 @@ export function Gallery({ property }: { property: Property }) {
             <span className="text-sm font-medium text-white/70">
               {active + 1} / {photos.length}
             </span>
-            <button
-              type="button"
-              aria-label="Close fullscreen"
-              onClick={() => setLightbox(false)}
-              className="rounded-full p-2 text-white hover:bg-white/10"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                aria-label={zoomed ? "Zoom out" : "Zoom in"}
+                onClick={() => setZoomed((z) => !z)}
+                className="rounded-full p-2 text-white hover:bg-white/10"
+              >
+                {zoomed ? <ZoomOut className="h-5 w-5" /> : <ZoomIn className="h-5 w-5" />}
+              </button>
+              <button type="button" aria-label="Close fullscreen" onClick={closeLightbox} className="rounded-full p-2 text-white hover:bg-white/10">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
           <div className="relative flex flex-1 items-center justify-center px-4 pb-6">
             <button
               type="button"
               aria-label="Previous photo"
-              onClick={() => setActive((i) => (i - 1 + photos.length) % photos.length)}
-              className="absolute left-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+              onClick={() => stepPhoto(-1)}
+              className="absolute left-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <div className="h-full w-full max-w-3xl">
-              <PhotoSlide url={photos[active]} seed={photoSeed(active)} propertyType={property.propertyType} className="h-full w-full rounded-xl" fit="contain" />
+            <div
+              className={cn(
+                "h-full w-full max-w-3xl",
+                zoomed ? "overflow-auto cursor-zoom-out" : "overflow-hidden cursor-zoom-in"
+              )}
+              onClick={() => setZoomed((z) => !z)}
+            >
+              <PhotoSlide
+                url={photos[active]}
+                seed={photoSeed(active)}
+                propertyType={property.propertyType}
+                className={cn("rounded-xl transition-[width,height] duration-200", zoomed ? "h-[220%] w-[220%]" : "h-full w-full")}
+                fit="contain"
+              />
             </div>
             <button
               type="button"
               aria-label="Next photo"
-              onClick={() => setActive((i) => (i + 1) % photos.length)}
-              className="absolute right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+              onClick={() => stepPhoto(1)}
+              className="absolute right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
