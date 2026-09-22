@@ -11,6 +11,8 @@ import {
   GoogleAuthProvider,
   signOut,
   sendEmailVerification,
+  applyActionCode,
+  checkActionCode,
   updateProfile as updateFirebaseDisplayName,
   updateEmail as updateFirebaseEmail,
   RecaptchaVerifier,
@@ -73,6 +75,12 @@ export interface AuthProvider {
    *  verification link in another tab/device (also refreshes the cached user so `emailVerified`
    *  is up to date). Returns the fresh value. */
   refreshEmailVerified(): Promise<boolean>;
+  /** Completes verification from the ?oobCode= in a clicked email link (handleCodeInApp: true
+   *  sends it straight to /verify-email instead of Firebase's own hosted page). Works even if
+   *  this browser has no active session — the code alone is enough. Returns the verified
+   *  address (read from the code itself, not from any local session) so the caller can fire the
+   *  welcome email. Throws on an invalid/already-used/expired code. */
+  confirmEmailFromCode(oobCode: string): Promise<{ email: string }>;
 }
 
 function isBrowser() {
@@ -338,6 +346,12 @@ class MockAuthProvider implements AuthProvider {
   async refreshEmailVerified(): Promise<boolean> {
     return true;
   }
+
+  async confirmEmailFromCode(): Promise<{ email: string }> {
+    await delay(300);
+    if (!this.current?.email) throw new Error("Invalid or expired verification link.");
+    return { email: this.current.email };
+  }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -495,10 +509,16 @@ function friendlyAuthError(err: unknown): string {
 
 // Firebase Auth's own email verification — a clickable link, sent and validated entirely by
 // Firebase itself (no custom OTP route, no dependency on Brevo/Resend/SMTP for this one email).
-// The continue link lands back on /verify-email, which polls refreshEmailVerified() to notice
-// the change once the user clicks it (in this tab or a different device/browser).
+// handleCodeInApp: true is what actually matters here — without it, the link opens Firebase's
+// own generic, unbranded confirmation page (hosted at <project>.firebaseapp.com) and *that* page
+// is what completes the verification; our own /verify-email page never even runs unless the
+// visitor clicks its "Continue" button afterwards. If they close that tab, or open the link on a
+// different device than the one still waiting on /verify-email's background poll, the welcome
+// email never fires. With handleCodeInApp: true the link instead opens /verify-email directly
+// with the code attached, so that page can call applyActionCode() itself, complete verification,
+// and send the welcome email right there — no dependence on some other tab still being open.
 async function sendVerificationLink(firebaseUser: FirebaseUser): Promise<void> {
-  await sendEmailVerification(firebaseUser, { url: `${SITE_URL}/verify-email`, handleCodeInApp: false });
+  await sendEmailVerification(firebaseUser, { url: `${SITE_URL}/verify-email`, handleCodeInApp: true });
 }
 
 // Sets an unverified phone number on an email/password account — see api/auth/set-phone for why
@@ -742,6 +762,29 @@ class FirebaseAuthProvider implements AuthProvider {
     this.ready = true;
     this.listeners.forEach((l) => l(user));
     return user.emailVerified;
+  }
+
+  async confirmEmailFromCode(oobCode: string): Promise<{ email: string }> {
+    // checkActionCode reads the code's own payload (who it's for) without requiring this
+    // browser to have any active session — works whether verification happens in the original
+    // signup tab, a fresh tab, or a completely different device than the one that signed up.
+    const info = await checkActionCode(getFirebaseAuth(), oobCode);
+    const email = info.data.email;
+    if (!email) throw new Error("This verification link is missing its email address.");
+    await applyActionCode(getFirebaseAuth(), oobCode);
+    // If this browser also happens to be the one signed in (the common case — same tab or
+    // same device as signup), refresh its cached emailVerified/notify listeners too, so any
+    // other open page (e.g. a still-waiting old-style poll) picks up the change immediately
+    // rather than waiting for its own next poll tick.
+    const firebaseUser = getFirebaseAuth().currentUser;
+    if (firebaseUser) {
+      await firebaseUser.reload();
+      const user = firebaseUserToAuthUser(firebaseUser);
+      this.current = user;
+      this.ready = true;
+      this.listeners.forEach((l) => l(user));
+    }
+    return { email };
   }
 }
 
