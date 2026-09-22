@@ -11,8 +11,6 @@ import {
   GoogleAuthProvider,
   signOut,
   sendEmailVerification,
-  applyActionCode,
-  checkActionCode,
   updateProfile as updateFirebaseDisplayName,
   updateEmail as updateFirebaseEmail,
   RecaptchaVerifier,
@@ -75,12 +73,6 @@ export interface AuthProvider {
    *  verification link in another tab/device (also refreshes the cached user so `emailVerified`
    *  is up to date). Returns the fresh value. */
   refreshEmailVerified(): Promise<boolean>;
-  /** Completes verification from the ?oobCode= in a clicked email link (handleCodeInApp: true
-   *  sends it straight to /verify-email instead of Firebase's own hosted page). Works even if
-   *  this browser has no active session — the code alone is enough. Returns the verified
-   *  address (read from the code itself, not from any local session) so the caller can fire the
-   *  welcome email. Throws on an invalid/already-used/expired code. */
-  confirmEmailFromCode(oobCode: string): Promise<{ email: string }>;
 }
 
 function isBrowser() {
@@ -346,12 +338,6 @@ class MockAuthProvider implements AuthProvider {
   async refreshEmailVerified(): Promise<boolean> {
     return true;
   }
-
-  async confirmEmailFromCode(): Promise<{ email: string }> {
-    await delay(300);
-    if (!this.current?.email) throw new Error("Invalid or expired verification link.");
-    return { email: this.current.email };
-  }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -509,16 +495,19 @@ function friendlyAuthError(err: unknown): string {
 
 // Firebase Auth's own email verification — a clickable link, sent and validated entirely by
 // Firebase itself (no custom OTP route, no dependency on Brevo/Resend/SMTP for this one email).
-// handleCodeInApp: true is what actually matters here — without it, the link opens Firebase's
-// own generic, unbranded confirmation page (hosted at <project>.firebaseapp.com) and *that* page
-// is what completes the verification; our own /verify-email page never even runs unless the
-// visitor clicks its "Continue" button afterwards. If they close that tab, or open the link on a
-// different device than the one still waiting on /verify-email's background poll, the welcome
-// email never fires. With handleCodeInApp: true the link instead opens /verify-email directly
-// with the code attached, so that page can call applyActionCode() itself, complete verification,
-// and send the welcome email right there — no dependence on some other tab still being open.
+//
+// Tried handleCodeInApp: true here to send the link straight to /verify-email instead of
+// Firebase's own hosted confirmation page — turns out that only works if the project has a
+// *custom action domain* configured, which requires Firebase Hosting for that domain. This site
+// is served from Hostinger, not Firebase Hosting, so the link always opens
+// <project>.firebaseapp.com/__/auth/action regardless of this flag; handleCodeInApp only changes
+// what that Firebase-hosted page does once its own "Continue" button is clicked (and even then,
+// its continueUrl is a bare link with no oobCode attached — /verify-email's ConfirmFromCode
+// branch, which needs that code, never runs from it). Back to false: the reliable path is
+// EmailVerifyGate's background poll in the tab that's still open from signup, which is why that
+// tab needs to stay open (or be switched back to) after clicking the link elsewhere.
 async function sendVerificationLink(firebaseUser: FirebaseUser): Promise<void> {
-  await sendEmailVerification(firebaseUser, { url: `${SITE_URL}/verify-email`, handleCodeInApp: true });
+  await sendEmailVerification(firebaseUser, { url: `${SITE_URL}/verify-email`, handleCodeInApp: false });
 }
 
 // Sets an unverified phone number on an email/password account — see api/auth/set-phone for why
@@ -764,28 +753,6 @@ class FirebaseAuthProvider implements AuthProvider {
     return user.emailVerified;
   }
 
-  async confirmEmailFromCode(oobCode: string): Promise<{ email: string }> {
-    // checkActionCode reads the code's own payload (who it's for) without requiring this
-    // browser to have any active session — works whether verification happens in the original
-    // signup tab, a fresh tab, or a completely different device than the one that signed up.
-    const info = await checkActionCode(getFirebaseAuth(), oobCode);
-    const email = info.data.email;
-    if (!email) throw new Error("This verification link is missing its email address.");
-    await applyActionCode(getFirebaseAuth(), oobCode);
-    // If this browser also happens to be the one signed in (the common case — same tab or
-    // same device as signup), refresh its cached emailVerified/notify listeners too, so any
-    // other open page (e.g. a still-waiting old-style poll) picks up the change immediately
-    // rather than waiting for its own next poll tick.
-    const firebaseUser = getFirebaseAuth().currentUser;
-    if (firebaseUser) {
-      await firebaseUser.reload();
-      const user = firebaseUserToAuthUser(firebaseUser);
-      this.current = user;
-      this.ready = true;
-      this.listeners.forEach((l) => l(user));
-    }
-    return { email };
-  }
 }
 
 export const authService: AuthProvider = isFirebaseConfigured() ? new FirebaseAuthProvider() : new MockAuthProvider();

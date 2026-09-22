@@ -13,11 +13,13 @@ import { useAuth } from "@/lib/auth";
 /** Shown wherever an email/password account must confirm its address before continuing
  *  (property pages, the post-property wizard, /verify-email itself). Signup already emailed a
  *  verification link by the time this renders (see auth.service.ts's registerWithEmail) — a real
- *  clickable link, not a typed code. Clicking it completes verification on /verify-email itself
- *  (see that page's ConfirmFromCode), possibly in a different tab or device than this one — this
- *  polls refreshEmailVerified() in the background as a fallback so *this* tab also notices and
- *  moves on, without requiring the user to come back and press anything here. Pass `bare` when
- *  the caller already provides its own page container (e.g. inside AuthShell). */
+ *  clickable link, not a typed code. The link opens Firebase's own hosted confirmation page
+ *  (Hostinger-served sites can't get Firebase to open a page of ours directly for this — that
+ *  needs a custom action domain, which requires Firebase Hosting), which completes verification
+ *  on its own end. This polls refreshEmailVerified() in the background to notice the moment
+ *  that's done, without requiring the user to come back and press anything — just don't close
+ *  this tab after clicking the link elsewhere. Pass `bare` when the caller already provides its
+ *  own page container (e.g. inside AuthShell). */
 export function EmailVerifyGate({
   email,
   next = "/",
