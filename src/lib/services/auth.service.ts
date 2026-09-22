@@ -624,13 +624,30 @@ class FirebaseAuthProvider implements AuthProvider {
   }
 
   async registerWithEmail(input: { name: string; email: string; password: string; role: UserRole; phone: string }): Promise<AuthUser> {
+    // Checked *before* the account is created — Firebase Auth itself treats phoneNumber as a
+    // unique field (same as email), so a duplicate was always rejected, but only inside
+    // setPhoneRequest() below, which used to be a swallowed .catch(() => {}). That meant the
+    // email account got created anyway with no phone attached and nobody told — same number
+    // could end up looking "free" to try again on a different account indefinitely.
+    const availability = (await fetch("/api/auth/check-phone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: input.phone }),
+    })
+      .then((r) => r.json())
+      .catch(() => ({ available: true }))) as { available?: boolean };
+    if (availability.available === false) {
+      throw new Error("That phone number is already registered to another account.");
+    }
     try {
       const credential = await createUserWithEmailAndPassword(getFirebaseAuth(), input.email, input.password);
       await updateFirebaseDisplayName(credential.user, { displayName: input.name });
       // Email accounts have no verified phone otherwise, which left admin with no way to call
       // back a visitor who scheduled a visit or posted a listing — set it via the Admin SDK
       // (the client SDK can't set an arbitrary phoneNumber without a real OTP verification).
-      // Best-effort: a failure here must not block an otherwise-successful signup.
+      // The pre-check above already rejects a known duplicate before the account exists at all;
+      // this stays best-effort for genuine transient failures (a race, a network hiccup) so
+      // those don't block an otherwise-successful signup.
       await setPhoneRequest(credential.user, input.phone).catch(() => {});
       // Email the verification link. Best-effort: a failure here (rate limit, mail hiccup, etc.)
       // must not block an otherwise-successful signup — EmailVerifyGate's "Resend link" covers a
