@@ -67,6 +67,7 @@ export function Footer() {
           </p>
           <div className="mt-4 flex flex-col gap-1.5 text-sm text-white/70">
             <a href="tel:+919180105646" className="hover:text-white">+91 91801 05646</a>
+            <a href="tel:+919894274168" className="hover:text-white">+91 98942 74168</a>
             <a href="mailto:rentlet28@gmail.com" className="hover:text-white">rentlet28@gmail.com</a>
           </div>
           <div className="mt-5 flex gap-2">

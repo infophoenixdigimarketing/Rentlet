@@ -15,13 +15,18 @@ export default function ContactPage() {
             <span className="block text-xs text-muted-foreground">rentlet28@gmail.com</span>
           </span>
         </a>
-        <a href="tel:+919180105646" className="flex items-start gap-3 rounded-2xl border border-border bg-white p-4 hover:border-brand-orange/40">
+        <div className="flex items-start gap-3 rounded-2xl border border-border bg-white p-4">
           <Phone className="h-5 w-5 shrink-0 text-brand-orange" />
           <span>
             <span className="block text-sm font-semibold text-foreground">Phone</span>
-            <span className="block text-xs text-muted-foreground">+91 91801 05646</span>
+            <a href="tel:+919180105646" className="block text-xs text-muted-foreground hover:text-brand-orange">
+              +91 91801 05646
+            </a>
+            <a href="tel:+919894274168" className="block text-xs text-muted-foreground hover:text-brand-orange">
+              +91 98942 74168
+            </a>
           </span>
-        </a>
+        </div>
         <a href="https://www.rentlet.in" className="flex items-start gap-3 rounded-2xl border border-border bg-white p-4 hover:border-brand-orange/40">
           <Globe className="h-5 w-5 shrink-0 text-brand-orange" />
           <span>
